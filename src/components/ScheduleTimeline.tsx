@@ -47,7 +47,7 @@ export const ScheduleTimeline: React.FC = () => {
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-heading text-2xl font-bold text-fantasy-midnight dark:text-fantasy-cream flex items-center gap-2">
           <Clock className="w-6 h-6 text-primary-500" />
-          Today&apos;s Quest Schedule
+          Today's Quest Schedule
         </h2>
       </div>
 

@@ -16,6 +16,7 @@ export const getInitialGameState = (): GameState => {
       lastActiveDate: today,
       weeklyProgress: {},
       history: [],
+      profileIcon: undefined,
     },
     tasks: INITIAL_TASKS.map((task, index) => ({
       ...task,

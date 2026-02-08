@@ -10,7 +10,12 @@ import {
   getXPForNextLevel,
   getXPProgress 
 } from '@/lib/storage';
-import { XP_RULES } from '@/data/constants';
+import { 
+  saveGameStateToFirestore, 
+  loadGameStateFromFirestore 
+} from '@/lib/firestoreStorage';
+import { useAuth } from '@/lib/AuthContext';
+import { XP_RULES, DAILY_SCHEDULE } from '@/data/constants';
 import { format, startOfWeek, differenceInDays } from 'date-fns';
 
 interface GameContextType {
@@ -28,6 +33,7 @@ interface GameContextType {
   assignTaskToSlot: (taskId: string, slotId: string) => void;
   getTodayProgress: () => DailyProgress;
   getAssignedTasks: () => Record<string, string>;
+  setProfileIcon: (icon: string | undefined) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -35,22 +41,46 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [gameState, setGameState] = useState<GameState>(getInitialGameState());
   const [isLoaded, setIsLoaded] = useState(false);
+  const { user } = useAuth();
 
-  // Load game state on mount
+  // Load game state on mount or when user changes
   useEffect(() => {
-    const loadedState = loadGameState();
-    if (loadedState) {
-      setGameState(loadedState);
-    }
-    setIsLoaded(true);
-  }, []);
+    const loadData = async () => {
+      if (user) {
+        // Load from Firestore if logged in
+        const firestoreState = await loadGameStateFromFirestore(user.uid);
+        if (firestoreState) {
+          // Force update schedule to latest version
+          firestoreState.schedule = DAILY_SCHEDULE;
+          setGameState(firestoreState);
+        }
+      } else {
+        // Load from LocalStorage if not logged in
+        const loadedState = loadGameState();
+        if (loadedState) {
+          // Force update schedule to latest version
+          loadedState.schedule = DAILY_SCHEDULE;
+          setGameState(loadedState);
+        }
+      }
+      setIsLoaded(true);
+    };
+
+    loadData();
+  }, [user]);
 
   // Save game state whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      saveGameState(gameState);
+      if (user) {
+        // Save to Firestore if logged in
+        saveGameStateToFirestore(user.uid, gameState);
+      } else {
+        // Save to LocalStorage if not logged in
+        saveGameState(gameState);
+      }
     }
-  }, [gameState, isLoaded]);
+  }, [gameState, isLoaded, user]);
 
   // Check and update streak
   useEffect(() => {
@@ -287,6 +317,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setGameState(getInitialGameState());
   };
 
+  const setProfileIcon = (icon: string | undefined) => {
+    setGameState(prev => ({
+      ...prev,
+      userProgress: {
+        ...prev.userProgress,
+        profileIcon: icon
+      }
+    }));
+  };
+
   if (!isLoaded) {
     return null;
   }
@@ -308,6 +348,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         assignTaskToSlot,
         getTodayProgress,
         getAssignedTasks,
+        setProfileIcon,
       }}
     >
       {children}

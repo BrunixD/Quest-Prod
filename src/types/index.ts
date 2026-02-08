@@ -59,6 +59,7 @@ export interface UserProgress {
   lastActiveDate: string;
   weeklyProgress: Record<string, DailyProgress>;
   history: DailyProgress[];
+  profileIcon?: string;
 }
 
 export interface Level {

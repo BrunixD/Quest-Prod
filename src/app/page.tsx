@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
+import { useAuth } from '@/lib/AuthContext';
+import { LoginPage } from '@/components/LoginPage';
 import { XPBar } from '@/components/XPBar';
 import { StatsDashboard } from '@/components/StatsDashboard';
 import { ScheduleTimeline } from '@/components/ScheduleTimeline';
@@ -10,13 +12,40 @@ import { WeeklyRotation } from '@/components/WeeklyRotation';
 import { RewardsShop } from '@/components/RewardsShop';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { CelebrationAnimation } from '@/components/CelebrationAnimation';
-import { Home, Calendar, ShoppingBag, Settings, Sparkles } from 'lucide-react';
+import { Home, Calendar, ShoppingBag, Settings, Sparkles, LogOut, User } from 'lucide-react';
 
 type TabType = 'dashboard' | 'rotation' | 'rewards' | 'settings';
 
 export default function QuestPage() {
   const { gameState } = useGame();
+  const { user, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-fantasy-cream flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl animate-bounce mb-4">⚔️</div>
+          <p className="font-heading text-xl text-fantasy-midnight">Loading your quest...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
 
   const tabs = [
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: Home },
@@ -56,16 +85,70 @@ export default function QuestPage() {
                 </div>
               </motion.div>
 
-              <motion.div
-                initial={{ x: 20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border-2 border-white/30"
-              >
-                <Sparkles className="w-5 h-5 text-yellow-300 animate-sparkle" />
-                <span className="font-heading text-xl font-bold text-white">
-                  {gameState.userProgress.totalXP} XP
-                </span>
-              </motion.div>
+              <div className="flex items-center gap-3">
+                <motion.div
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border-2 border-white/30"
+                >
+                  <Sparkles className="w-5 h-5 text-yellow-300 animate-sparkle" />
+                  <span className="font-heading text-xl font-bold text-white">
+                    {gameState.userProgress.totalXP} XP
+                  </span>
+                </motion.div>  
+
+                {/* User Menu */}
+                <div className="relative">
+                   <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border-2 border-white/30 hover:bg-white/30 transition-colors"
+                  >
+                    {gameState.userProgress.profileIcon ? (
+                      <span className="text-2xl">{gameState.userProgress.profileIcon}</span>
+                    ) : user.photoURL ? (
+                      <img 
+                        src={user.photoURL} 
+                        alt="Profile" 
+                        className="w-6 h-6 rounded-full"
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-white" />
+                    )}
+                    <span className="font-body text-sm text-white hidden sm:block">
+                      {user.displayName?.split(' ')[0] || 'Adventurer'}
+                    </span>
+                  </motion.button>
+
+                  <AnimatePresence>
+                    {showUserMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-fantasy-midnight rounded-xl shadow-xl border-2 border-fantasy-lavender/30 overflow-hidden"
+                      >
+                        <div className="p-3 border-b border-fantasy-lavender/20">
+                          <p className="font-body text-sm text-fantasy-midnight dark:text-fantasy-cream font-semibold">
+                            {user.displayName}
+                          </p>
+                          <p className="font-body text-xs text-fantasy-midnight/60 dark:text-fantasy-cream/60">
+                            {user.email}
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full px-4 py-3 text-left font-body text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
             </div>
           </div>
         </header>
@@ -140,7 +223,7 @@ export default function QuestPage() {
               Keep grinding, adventurer! Every task completed brings you closer to mastery. ⚔️✨
             </p>
             <p className="font-body text-xs text-fantasy-midnight/40 dark:text-fantasy-cream/40 mt-2">
-              Made with 💜 for productivity heroes
+              Made with 💜 for productivity heroes • Synced across all devices ☁️
             </p>
           </div>
         </footer>

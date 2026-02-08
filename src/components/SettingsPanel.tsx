@@ -3,10 +3,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
-import { Settings as SettingsIcon, Volume2, VolumeX, Moon, Sun, RotateCcw } from 'lucide-react';
+import { Settings as SettingsIcon, Volume2, VolumeX, Moon, Sun, RotateCcw, Smile } from 'lucide-react';
 
 export const SettingsPanel: React.FC = () => {
-  const { gameState, toggleDarkMode, toggleSound, resetProgress } = useGame();
+  const { gameState, toggleDarkMode, toggleSound, resetProgress, setProfileIcon } = useGame();
   const { soundEnabled, darkMode } = gameState.settings;
 
   const handleReset = () => {
@@ -14,6 +14,8 @@ export const SettingsPanel: React.FC = () => {
       resetProgress();
     }
   };
+
+  const iconOptions = ['⚔️', '🎨', '📚', '🎮', '💎', '🔥', '✨', '👑', '🌟', '💜', '🦇', '🎯'];
 
   return (
     <div className="space-y-6">
@@ -23,6 +25,48 @@ export const SettingsPanel: React.FC = () => {
       </h2>
 
       <div className="space-y-4">
+        {/* Profile Icon Picker */}
+        <div className="bg-gradient-to-r from-fantasy-peach/20 to-fantasy-lavender/20 rounded-2xl p-6 border-2 border-fantasy-peach/30">
+          <div className="flex items-center gap-3 mb-4">
+            <Smile className="w-6 h-6 text-fantasy-peach" />
+            <div>
+              <h3 className="font-heading text-lg font-semibold text-fantasy-midnight dark:text-fantasy-cream">
+                Profile Icon
+              </h3>
+              <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">
+                Choose your adventure icon
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-6 gap-3 mb-4">
+            {iconOptions.map(icon => (
+              <motion.button
+                key={icon}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setProfileIcon(icon)}
+                className={`text-4xl p-3 rounded-xl border-2 transition-all ${
+                  gameState.userProgress.profileIcon === icon
+                    ? 'bg-primary-500/20 border-primary-500 shadow-lg'
+                    : 'bg-white/30 dark:bg-fantasy-midnight/30 border-fantasy-lavender/30 hover:border-primary-400'
+                }`}
+              >
+                {icon}
+              </motion.button>
+            ))}
+          </div>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setProfileIcon(undefined)}
+            className="w-full px-4 py-2 bg-fantasy-midnight/10 dark:bg-fantasy-cream/10 rounded-lg font-body text-sm hover:bg-fantasy-midnight/20 dark:hover:bg-fantasy-cream/20 transition-colors"
+          >
+            Reset to Google Photo
+          </motion.button>
+        </div>
+
         {/* Dark Mode Toggle */}
         <div className="bg-gradient-to-r from-fantasy-lavender/20 to-fantasy-midnight/20 rounded-2xl p-6 border-2 border-fantasy-lavender/30">
           <div className="flex items-center justify-between">

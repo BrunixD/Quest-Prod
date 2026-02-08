@@ -37,11 +37,36 @@ export const INITIAL_TASKS: Omit<Task, 'id' | 'completed' | 'completedAt'>[] = [
 ];
 
 export const DEFAULT_REWARDS: Omit<Reward, 'id' | 'purchased' | 'purchasedAt'>[] = [
+  // Original Rewards
   { title: 'Guilt-free binge session', xpCost: 50, icon: '📺', description: 'Watch shows without any guilt!' },
   { title: 'Order food', xpCost: 120, icon: '🍕', description: 'Treat yourself to a delicious meal' },
   { title: 'Buy art supplies', xpCost: 150, icon: '🎨', description: 'Get new materials for your creations' },
   { title: 'Skip 1 task penalty-free', xpCost: 200, icon: '✨', description: 'Take a break without losing XP' },
   { title: 'Big reward fund', xpCost: 400, icon: '💎', description: 'Save up for something special!' },
+  
+  // Gaming Rewards
+  { title: 'Play one more game', xpCost: 75, icon: '🎮', description: 'Extra gaming session unlocked!' },
+  { title: 'Play 1 League game with her', xpCost: 150, icon: '⚔️', description: 'Duo queue time together!' },
+  { title: 'FNAF - 1 try', xpCost: 80, icon: '🐻', description: 'Face your fears... once' },
+  { title: 'FNAF - 5 tries', xpCost: 180, icon: '🐻', description: 'Survive the night... five times' },
+  { title: 'FNAF - 10 tries', xpCost: 300, icon: '🐻', description: 'Marathon horror session!' },
+  
+  // Reading Tasks
+  { title: 'Read 1 page of a book', xpCost: 100, icon: '📖', description: 'She picks the book!' },
+  { title: 'Read 5 pages of a book', xpCost: 200, icon: '📚', description: 'Get into the story!' },
+  { title: 'Read 10 pages of a book', xpCost: 350, icon: '📕', description: 'Serious reading time!' },
+  { title: 'Read 25 pages of a book', xpCost: 600, icon: '📗', description: 'Almost a chapter!' },
+  
+  // TV/Entertainment
+  { title: 'Watch 1 episode with her', xpCost: 120, icon: '📺', description: 'Cozy viewing time together' },
+  
+  // Messages & Photos
+  { title: 'Send heartfelt message', xpCost: 250, icon: '💌', description: 'Pour your heart out to her' },
+  { title: 'Send spicy message', xpCost: 300, icon: '🌶️', description: 'Turn up the heat...' },
+  { title: 'Send nasty message', xpCost: 400, icon: '🔥', description: 'Make her blush hard' },
+  { title: 'Send cute photo', xpCost: 200, icon: '📸', description: 'Show off that smile!' },
+  { title: 'Send spicy photo', xpCost: 450, icon: '😏', description: 'Drive her wild...' },
+  { title: 'Send nasty photo', xpCost: 600, icon: '🥵', description: 'Only for her eyes...' },
 ];
 
 export const LEVELS: Level[] = [
@@ -54,16 +79,12 @@ export const LEVELS: Level[] = [
 
 export const DAILY_SCHEDULE: TimeSlot[] = [
   { id: 'breakfast', startTime: '09:30', endTime: '10:30', type: 'meal', label: 'Breakfast' },
-  { id: 'break1', startTime: '10:30', endTime: '10:40', type: 'break', label: 'Break' },
-  { id: 'task1', startTime: '10:40', endTime: '11:40', type: 'task', label: 'Task Slot 1' },
-  { id: 'break2', startTime: '11:40', endTime: '11:50', type: 'break', label: 'Break' },
-  { id: 'task2', startTime: '11:50', endTime: '12:50', type: 'task', label: 'Task Slot 2' },
-  { id: 'lunch', startTime: '12:50', endTime: '13:50', type: 'meal', label: 'Lunch' },
-  { id: 'break3', startTime: '13:50', endTime: '14:00', type: 'break', label: 'Break' },
-  { id: 'task3', startTime: '14:00', endTime: '15:00', type: 'task', label: 'Task Slot 3' },
-  { id: 'break4', startTime: '15:00', endTime: '15:10', type: 'break', label: 'Break' },
-  { id: 'task4', startTime: '15:10', endTime: '16:10', type: 'task', label: 'Task Slot 4' },
-  { id: 'winddown', startTime: '16:10', endTime: '16:30', type: 'free', label: 'Wind-down' },
+  { id: 'task1', startTime: '10:30', endTime: '11:30', type: 'task', label: 'Task Slot 1' },
+  { id: 'task2', startTime: '11:30', endTime: '12:30', type: 'task', label: 'Task Slot 2' },
+  { id: 'task3', startTime: '12:30', endTime: '13:30', type: 'meal', label: 'Lunch' },
+  { id: 'lunch', startTime: '13:30', endTime: '15:00', type: 'task', label: 'Task Slot 3' },
+  { id: 'task4', startTime: '15:00', endTime: '16:00', type: 'task', label: 'Task Slot 4' },
+  { id: 'winddown', startTime: '16:00', endTime: '16:30', type: 'free', label: 'Wind-down' },
 ];
 
 export const XP_RULES = {
