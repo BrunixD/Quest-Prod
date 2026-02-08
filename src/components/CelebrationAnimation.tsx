@@ -19,6 +19,7 @@ export const CelebrationAnimation: React.FC = () => {
     }
     
     setPrevCompleted(todayProgress.completedTasks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getTodayProgress]);
 
   return (
@@ -100,7 +101,7 @@ export const CelebrationAnimation: React.FC = () => {
                 transition={{ delay: 0.5 }}
                 className="font-body text-lg text-white/90 mb-4"
               >
-                You've conquered all 4 tasks today!
+                 You&apos;ve conquered all 4 tasks today!
               </motion.p>
 
               <motion.div
