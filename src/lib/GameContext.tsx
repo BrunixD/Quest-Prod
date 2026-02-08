@@ -21,7 +21,7 @@ import { format, startOfWeek, differenceInDays } from 'date-fns';
 interface GameContextType {
   gameState: GameState;
   completeTask: (taskId: string, slotId: string) => void;
-  skipTask: (taskId: string) => void;
+  skipTask: (taskId: string, slotId: string) => void;
   quitTask: (taskId: string) => void;
   addCustomTask: (task: Omit<Task, 'id' | 'completed'>) => void;
   addCustomReward: (reward: Omit<Reward, 'id' | 'purchased'>) => void;
@@ -30,10 +30,14 @@ interface GameContextType {
   toggleDarkMode: () => void;
   toggleSound: () => void;
   resetProgress: () => void;
-  assignTaskToSlot: (taskId: string, slotId: string) => void;
+  assignTaskToSlot: (taskId: string, slotId: string, date: Date) => void;
   getTodayProgress: () => DailyProgress;
   getAssignedTasks: () => Record<string, string>;
   setProfileIcon: (icon: string | undefined) => void;
+  deleteTask: (taskId: string) => void;
+  deleteReward: (rewardId: string) => void;
+  getSlotAssignment: (date: Date, slotId: string) => string | undefined;
+  removeSlotAssignment: (date: Date, slotId: string) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -113,6 +117,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       tasksCompleted: [],
       tasksSkipped: [],
       tasksPenalty: [],
+      slotAssignments: {},
     };
   };
 
@@ -126,12 +131,71 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return assignments;
   };
 
-  const assignTaskToSlot = (taskId: string, slotId: string) => {
+  const assignTaskToSlot = (taskId: string, slotId: string, date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    
     setGameState(prev => ({
       ...prev,
-      schedule: prev.schedule.map(slot =>
-        slot.id === slotId ? { ...slot, taskId } : slot
-      ),
+      userProgress: {
+        ...prev.userProgress,
+        weeklyProgress: {
+          ...prev.userProgress.weeklyProgress,
+          [dateStr]: {
+            ...(prev.userProgress.weeklyProgress[dateStr] || {
+              date: dateStr,
+              completedTasks: 0,
+              totalTasks: 4,
+              xpEarned: 0,
+              tasksCompleted: [],
+              tasksSkipped: [],
+              tasksPenalty: [],
+            }),
+            slotAssignments: {
+              ...(prev.userProgress.weeklyProgress[dateStr]?.slotAssignments || {}),
+              [slotId]: taskId,
+            },
+          },
+        },
+      },
+    }));
+  };
+
+  const getSlotAssignment = (date: Date, slotId: string): string | undefined => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayProgress = gameState.userProgress.weeklyProgress[dateStr];
+    return dayProgress?.slotAssignments?.[slotId];
+  };
+
+  const removeSlotAssignment = (date: Date, slotId: string) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    
+    setGameState(prev => {
+      const dayProgress = prev.userProgress.weeklyProgress[dateStr];
+      if (!dayProgress?.slotAssignments) return prev;
+      
+      const newAssignments = { ...dayProgress.slotAssignments };
+      delete newAssignments[slotId];
+      
+      return {
+        ...prev,
+        userProgress: {
+          ...prev.userProgress,
+          weeklyProgress: {
+            ...prev.userProgress.weeklyProgress,
+            [dateStr]: {
+              ...dayProgress,
+              slotAssignments: newAssignments,
+            },
+          },
+        },
+      };
+    });
+  };
+
+  const deleteReward = (rewardId: string) => {
+    setGameState(prev => ({
+      ...prev,
+      rewards: prev.rewards.filter(r => r.id !== rewardId),
     }));
   };
 
@@ -191,7 +255,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const skipTask = (taskId: string) => {
+  const skipTask = (taskId: string, slotId: string) => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayProgress = getTodayProgress();
     
@@ -327,6 +391,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
+  const deleteTask = (taskId: string) => {
+    setGameState(prev => ({
+      ...prev,
+      tasks: prev.tasks.filter(t => t.id !== taskId),
+    }));
+  };
+
   if (!isLoaded) {
     return null;
   }
@@ -349,6 +420,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         getTodayProgress,
         getAssignedTasks,
         setProfileIcon,
+        deleteTask,
+        deleteReward,
+        getSlotAssignment,
+        removeSlotAssignment,
       }}
     >
       {children}

@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
-import { ShoppingBag, Plus, Sparkles, Check, X } from 'lucide-react';
+import { ShoppingBag, Plus, Sparkles, Check, X, Trash2 } from 'lucide-react';
 
 export const RewardsShop: React.FC = () => {
-  const { gameState, purchaseReward, addCustomReward } = useGame();
+  const { gameState, purchaseReward, addCustomReward, deleteReward } = useGame();
   const [showAddReward, setShowAddReward] = useState(false);
   const [newReward, setNewReward] = useState({
     title: '',
@@ -17,6 +17,12 @@ export const RewardsShop: React.FC = () => {
 
   const handlePurchase = (rewardId: string) => {
     purchaseReward(rewardId);
+  };
+
+  const handleDeleteReward = (rewardId: string) => {
+    if (confirm('Are you sure you want to delete this reward?')) {
+      deleteReward(rewardId);
+    }
   };
 
   const handleAddReward = () => {
@@ -194,19 +200,31 @@ export const RewardsShop: React.FC = () => {
                     )}
                   </div>
 
-                  <motion.button
-                    whileHover={{ scale: canAfford ? 1.05 : 1 }}
-                    whileTap={{ scale: canAfford ? 0.95 : 1 }}
-                    onClick={() => canAfford && handlePurchase(reward.id)}
-                    disabled={!canAfford}
-                    className={`w-full px-4 py-3 rounded-lg font-heading font-bold transition-all ${
-                      canAfford
-                        ? 'bg-fantasy-gold hover:bg-fantasy-gold/80 text-fantasy-midnight shadow-md'
-                        : 'bg-fantasy-midnight/10 dark:bg-fantasy-cream/10 text-fantasy-midnight/40 dark:text-fantasy-cream/40 cursor-not-allowed'
-                    }`}
-                  >
-                    {canAfford ? 'Claim Reward' : 'Insufficient XP'}
-                  </motion.button>
+                  <div className="flex gap-2">
+                    <motion.button
+                      whileHover={{ scale: canAfford ? 1.05 : 1 }}
+                      whileTap={{ scale: canAfford ? 0.95 : 1 }}
+                      onClick={() => canAfford && handlePurchase(reward.id)}
+                      disabled={!canAfford}
+                      className={`flex-1 px-4 py-3 rounded-lg font-heading font-bold transition-all ${
+                        canAfford
+                          ? 'bg-fantasy-gold hover:bg-fantasy-gold/80 text-fantasy-midnight shadow-md'
+                          : 'bg-fantasy-midnight/10 dark:bg-fantasy-cream/10 text-fantasy-midnight/40 dark:text-fantasy-cream/40 cursor-not-allowed'
+                      }`}
+                    >
+                      {canAfford ? 'Claim Reward' : 'Insufficient XP'}
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleDeleteReward(reward.id)}
+                      className="px-3 py-3 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors"
+                      title="Delete reward"
+                    >
+                      <Trash2 className="w-5 h-5 text-red-600" />
+                    </motion.button>
+                  </div>
                 </motion.div>
               );
             })}

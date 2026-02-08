@@ -13,8 +13,10 @@ import { RewardsShop } from '@/components/RewardsShop';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { CelebrationAnimation } from '@/components/CelebrationAnimation';
 import { Home, Calendar, ShoppingBag, Settings, Sparkles, LogOut, User } from 'lucide-react';
+import { MonthlyCalendar } from '@/components/MonthlyCalendar';
+import { WeeklyCalendar } from '@/components/WeeklyCalendar';
 
-type TabType = 'dashboard' | 'rotation' | 'rewards' | 'settings';
+type TabType = 'dashboard' | 'weekly' | 'monthly' | 'rotation' | 'rewards' | 'settings';
 
 export default function QuestPage() {
   const { gameState } = useGame();
@@ -49,7 +51,9 @@ export default function QuestPage() {
 
   const tabs = [
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: Home },
-    { id: 'rotation' as TabType, label: 'Weekly Tasks', icon: Calendar },
+    { id: 'weekly' as TabType, label: 'Weekly', icon: Calendar },
+    { id: 'monthly' as TabType, label: 'Monthly', icon: Calendar },
+    { id: 'rotation' as TabType, label: 'Tasks', icon: Calendar },
     { id: 'rewards' as TabType, label: 'Rewards', icon: ShoppingBag },
     { id: 'settings' as TabType, label: 'Settings', icon: Settings },
   ];
@@ -209,6 +213,8 @@ export default function QuestPage() {
                 </>
               )}
 
+              {activeTab === 'weekly' && <WeeklyCalendar />}
+              {activeTab === 'monthly' && <MonthlyCalendar />}
               {activeTab === 'rotation' && <WeeklyRotation />}
               {activeTab === 'rewards' && <RewardsShop />}
               {activeTab === 'settings' && <SettingsPanel />}
