@@ -488,12 +488,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       if (!task) return;
 
       const today = new Date();
+      const dateStr = format(today, 'yyyy-MM-dd');
       const todayProgress = getTodayProgress();
       const xpGained = task.xpValue;
       
-      // Mark slot as completed
-      await db.completeSlot(user.id, today, slotId);
-
       const newCompletedCount = todayProgress.completedTasks + 1;
       let bonusXP = 0;
       if (newCompletedCount === 4) {
@@ -506,10 +504,29 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         ? gameState.userProgress.streak + 1 
         : gameState.userProgress.streak;
 
-      // Update daily progress
-      await db.updateDailyProgress(user.id, today, newCompletedCount, todayProgress.xpEarned + xpGained + bonusXP);
+      // Optimistic update - update UI immediately
+      setGameState(prev => ({
+        ...prev,
+        userProgress: {
+          ...prev.userProgress,
+          totalXP: newTotalXP,
+          currentLevel: newLevel,
+          streak: newStreak,
+          weeklyProgress: {
+            ...prev.userProgress.weeklyProgress,
+            [dateStr]: {
+              ...todayProgress,
+              completedTasks: newCompletedCount,
+              xpEarned: todayProgress.xpEarned + xpGained + bonusXP,
+              slotsCompleted: [...(todayProgress.slotsCompleted || []), slotId],
+            },
+          },
+        },
+      }));
 
-      // Update profile
+      // Save to database in background
+      await db.completeSlot(user.id, today, slotId);
+      await db.updateDailyProgress(user.id, today, newCompletedCount, todayProgress.xpEarned + xpGained + bonusXP);
       await db.updateProfile(user.id, {
         total_xp: newTotalXP,
         current_level: newLevel,
@@ -519,6 +536,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       console.log('✅ Task completed successfully');
     } catch (error) {
       console.error('❌ Error completing task:', error);
+      alert('Error completing task: ' + error);
     }
   };
 
@@ -526,22 +544,36 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     try {
       const today = new Date();
+      const dateStr = format(today, 'yyyy-MM-dd');
       const todayProgress = getTodayProgress();
-
-      // Mark slot as skipped
-      await db.skipSlot(user.id, today, slotId);
 
       const newTotalXP = Math.max(0, gameState.userProgress.totalXP + XP_RULES.SKIP_TASK_PENALTY);
 
-      // Update daily progress
+      // Optimistic update - update UI immediately
+      setGameState(prev => ({
+        ...prev,
+        userProgress: {
+          ...prev.userProgress,
+          totalXP: newTotalXP,
+          weeklyProgress: {
+            ...prev.userProgress.weeklyProgress,
+            [dateStr]: {
+              ...todayProgress,
+              xpEarned: todayProgress.xpEarned + XP_RULES.SKIP_TASK_PENALTY,
+              slotsSkipped: [...(todayProgress.slotsSkipped || []), slotId],
+            },
+          },
+        },
+      }));
+
+      // Save to database in background
+      await db.skipSlot(user.id, today, slotId);
       await db.updateDailyProgress(
         user.id, 
         today, 
         todayProgress.completedTasks, 
         todayProgress.xpEarned + XP_RULES.SKIP_TASK_PENALTY
       );
-
-      // Update profile
       await db.updateProfile(user.id, {
         total_xp: newTotalXP,
       });
@@ -549,6 +581,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       console.log('✅ Task skipped');
     } catch (error) {
       console.error('❌ Error skipping task:', error);
+      alert('Error skipping task: ' + error);
     }
   };
 
