@@ -3,12 +3,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
-import { Clock, Coffee, Utensils, Sparkles, CheckCircle2, XCircle, X, Trash2 } from 'lucide-react';
+import { Clock, Coffee, Utensils, Sparkles, CheckCircle2, XCircle, Trash2, Plus } from 'lucide-react';
 
 export const ScheduleTimeline: React.FC = () => {
-  const { gameState, completeTask, skipTask, getSlotAssignment, removeSlotAssignment, assignTaskToSlot } = useGame();
+  const { gameState, completeTask, skipTask, getSlotAssignment, removeSlotAssignment, assignTaskToSlot, completeExtraTask } = useGame();
   const { schedule } = gameState;
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [showExtraTasks, setShowExtraTasks] = useState(false);
+  const [completedExtraTasks, setCompletedExtraTasks] = useState<string[]>([]);
 
   const getSlotIcon = (type: string) => {
     switch (type) {
@@ -49,7 +51,7 @@ export const ScheduleTimeline: React.FC = () => {
     return gameState.userProgress.weeklyProgress[today];
   };
 
-   const isSlotCompleted = (slotId: string) => {
+  const isSlotCompleted = (slotId: string) => {
     const todayProgress = getTodayProgress();
     return todayProgress?.slotsCompleted?.includes(slotId);
   };
@@ -57,6 +59,11 @@ export const ScheduleTimeline: React.FC = () => {
   const isSlotSkipped = (slotId: string) => {
     const todayProgress = getTodayProgress();
     return todayProgress?.slotsSkipped?.includes(slotId);
+  };
+
+  const handleCompleteExtraTask = async (taskId: string) => {
+    await completeExtraTask(taskId);
+    setCompletedExtraTasks(prev => [...prev, taskId]);
   };
 
   return (
@@ -68,6 +75,7 @@ export const ScheduleTimeline: React.FC = () => {
         </h2>
       </div>
 
+      {/* Fixed Schedule */}
       <div className="grid gap-3">
         {schedule.map((slot, index) => {
           const assignedTaskId = slot.type === 'task' ? getSlotAssignment(new Date(), slot.id) : null;
@@ -268,6 +276,136 @@ export const ScheduleTimeline: React.FC = () => {
             </motion.div>
           );
         })}
+      </div>
+
+      {/* Extra Tasks Section */}
+      <div className="mt-8 bg-gradient-to-br from-fantasy-gold/20 to-fantasy-peach/20 rounded-2xl p-6 border-2 border-fantasy-gold/30">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-heading text-xl font-bold text-fantasy-midnight dark:text-fantasy-cream flex items-center gap-2">
+              <Plus className="w-6 h-6 text-fantasy-gold" />
+              Bonus Tasks (Unlimited!)
+            </h3>
+            <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60 mt-1">
+              Complete as many extra tasks as you want for bonus XP!
+            </p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowExtraTasks(!showExtraTasks)}
+            className="px-4 py-2 bg-fantasy-gold hover:bg-fantasy-gold/80 text-fantasy-midnight rounded-lg font-heading font-semibold transition-colors"
+          >
+            {showExtraTasks ? 'Hide' : 'Show Tasks'}
+          </motion.button>
+        </div>
+
+        <AnimatePresence>
+          {showExtraTasks && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="space-y-4"
+            >
+              {(() => {
+                const categories = Array.from(new Set(availableTasks.map(t => t.category)));
+                return categories.map(category => {
+                  const categoryTasks = availableTasks.filter(t => t.category === category && !completedExtraTasks.includes(t.id));
+                  if (categoryTasks.length === 0) return null;
+                  
+                  const categoryIcon = {
+                    'Creative / Art': '🎨',
+                    'Craft / Sewing': '🧵',
+                    'Writing / Learning': '📚',
+                    'Content / Online': '💻',
+                    'Gaming / Fun': '🎮',
+                    'Life Skills': '🍳',
+                  }[category] || '📋';
+
+                  return (
+                    <div key={category}>
+                      <h5 className="font-body text-sm font-bold text-fantasy-midnight/70 dark:text-fantasy-cream/70 mb-2 flex items-center gap-1">
+                        <span className="text-xl">{categoryIcon}</span>
+                        {category}
+                      </h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {categoryTasks.map(task => (
+                          <motion.div
+                            key={task.id}
+                            whileHover={{ scale: 1.02 }}
+                            className="p-3 bg-white/50 dark:bg-fantasy-midnight/50 rounded-lg border-2 border-fantasy-lavender/30 flex items-center justify-between"
+                          >
+                            <div className="flex-1">
+                              <span className="font-body text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream">
+                                {task.title}
+                              </span>
+                              <div className="flex gap-1 mt-1">
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                                  task.difficulty === 'Hard' ? 'bg-red-500/20 text-red-700 dark:text-red-300' :
+                                  task.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300' :
+                                  'bg-green-500/20 text-green-700 dark:text-green-300'
+                                }`}>
+                                  {task.difficulty}
+                                </span>
+                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary-500/20 text-primary-700 dark:text-primary-300 font-bold">
+                                  +{task.xpValue}
+                                </span>
+                              </div>
+                            </div>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => handleCompleteExtraTask(task.id)}
+                              className="ml-3 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-heading font-semibold text-sm transition-colors"
+                            >
+                              Complete
+                            </motion.button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+
+              {/* Completed Extra Tasks */}
+              {completedExtraTasks.length > 0 && (
+                <div className="mt-6 pt-6 border-t-2 border-fantasy-gold/20">
+                  <h5 className="font-body text-sm font-bold text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5" />
+                    Completed Bonus Tasks Today ({completedExtraTasks.length})
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {completedExtraTasks.map(taskId => {
+                      const task = gameState.tasks.find(t => t.id === taskId);
+                      if (!task) return null;
+                      
+                      return (
+                        <div
+                          key={taskId}
+                          className="p-3 bg-green-500/10 rounded-lg border-2 border-green-500/30 flex items-center gap-3"
+                        >
+                          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                          <div className="flex-1">
+                            <span className="font-body text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream">
+                              {task.title}
+                            </span>
+                            <div className="flex gap-1 mt-1">
+                              <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-700 dark:text-green-300 font-bold">
+                                +{task.xpValue} XP
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

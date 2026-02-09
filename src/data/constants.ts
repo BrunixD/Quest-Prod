@@ -1,4 +1,4 @@
-import { Task, Reward, Level, TimeSlot } from '@/types';
+import { Task, Reward, Level, TimeSlot, ScheduleSlot } from '@/types';
 
 export const INITIAL_TASKS: Omit<Task, 'id' | 'completed' | 'completedAt'>[] = [
   // Creative / Art
@@ -92,14 +92,15 @@ export const LEVELS: Level[] = [
   { level: 20, title: 'Cauldron Blessed', xpRequired: 2500, icon: '✨👑' },
 ];
 
-export const DAILY_SCHEDULE: TimeSlot[] = [
+export const DAILY_SCHEDULE: ScheduleSlot[] = [
   { id: 'breakfast', startTime: '09:30', endTime: '10:30', type: 'meal', label: 'Breakfast' },
   { id: 'task1', startTime: '10:30', endTime: '11:30', type: 'task', label: 'Task Slot 1' },
   { id: 'task2', startTime: '11:30', endTime: '12:30', type: 'task', label: 'Task Slot 2' },
-  { id: 'task3', startTime: '12:30', endTime: '13:30', type: 'meal', label: 'Lunch' },
-  { id: 'lunch', startTime: '13:30', endTime: '15:00', type: 'task', label: 'Task Slot 3' },
-  { id: 'task4', startTime: '15:00', endTime: '16:00', type: 'task', label: 'Task Slot 4' },
-  { id: 'winddown', startTime: '16:00', endTime: '16:30', type: 'free', label: 'Wind-down' },
+  { id: 'task3', startTime: '12:30', endTime: '13:30', type: 'task', label: 'Task Slot 3' },
+  { id: 'lunch', startTime: '13:30', endTime: '14:30', type: 'meal', label: 'Lunch' },
+  { id: 'task4', startTime: '14:30', endTime: '15:30', type: 'task', label: 'Task Slot 4' },
+  { id: 'task5', startTime: '15:30', endTime: '16:30', type: 'task', label: 'Task Slot 5' },
+  { id: 'winddown', startTime: '16:30', endTime: '17:00', type: 'free', label: 'Wind-down' },
 ];
 
 export const XP_RULES = {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Task, Reward, DailyProgress, GameState } from '@/types';
+import { GameState, Task, DailyProgress, Reward } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
 import { db } from '@/lib/database';
 import { DAILY_SCHEDULE, INITIAL_TASKS, DEFAULT_REWARDS, XP_RULES } from '@/data/constants';
@@ -29,6 +29,7 @@ interface GameContextType {
   deleteReward: (rewardId: string) => Promise<void>;
   getSlotAssignment: (date: Date, slotId: string) => string | undefined;
   removeSlotAssignment: (date: Date, slotId: string) => Promise<void>;
+  completeExtraTask: (taskId: string) => Promise<void>;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -161,7 +162,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         weeklyProgress[dateStr] = {
           date: dateStr,
           completedTasks: todayProgress?.completed_tasks || 0,
-          totalTasks: 4,
+          totalTasks: 5,
           xpEarned: todayProgress?.xp_earned || 0,
           tasksCompleted: [],
           tasksSkipped: [],
@@ -261,7 +262,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     });
 
     // Subscribe to slot assignments
-    // Subscribe to slot assignments
     const slotsChannel = db.subscribeToSlotAssignments(user.id, async (payload) => {
       console.log('🔔 Slot assignments updated:', payload);
       
@@ -295,7 +295,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
               ...(prev.userProgress.weeklyProgress[dateStr] || {
                 date: dateStr,
                 completedTasks: 0,
-                totalTasks: 4,
+                totalTasks: 5,
                 xpEarned: 0,
                 tasksCompleted: [],
                 tasksSkipped: [],
@@ -340,7 +340,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return gameState.userProgress.weeklyProgress[today] || {
       date: today,
       completedTasks: 0,
-      totalTasks: 4,
+      totalTasks: 5,
       xpEarned: 0,
       tasksCompleted: [],
       tasksSkipped: [],
@@ -379,7 +379,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
               ...(prev.userProgress.weeklyProgress[dateStr] || {
                 date: dateStr,
                 completedTasks: 0,
-                totalTasks: 4,
+                totalTasks: 5,
                 xpEarned: 0,
                 tasksCompleted: [],
                 tasksSkipped: [],
@@ -494,7 +494,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       
       const newCompletedCount = todayProgress.completedTasks + 1;
       let bonusXP = 0;
-      if (newCompletedCount === 4) {
+      if (newCompletedCount === 5) {
         bonusXP = XP_RULES.ALL_TASKS_BONUS;
       }
 
@@ -607,6 +607,57 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       console.log('✅ Task quit');
     } catch (error) {
       console.error('❌ Error quitting task:', error);
+    }
+  };
+
+  const completeExtraTask = async (taskId: string) => {
+    if (!user) return;
+    try {
+      const task = gameState.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const today = new Date();
+      const todayProgress = getTodayProgress();
+      const xpGained = task.xpValue;
+
+      const newTotalXP = gameState.userProgress.totalXP + xpGained;
+      const newLevel = getCurrentLevel(newTotalXP);
+
+      // Optimistic update
+      const dateStr = format(today, 'yyyy-MM-dd');
+      setGameState(prev => ({
+        ...prev,
+        userProgress: {
+          ...prev.userProgress,
+          totalXP: newTotalXP,
+          currentLevel: newLevel,
+          weeklyProgress: {
+            ...prev.userProgress.weeklyProgress,
+            [dateStr]: {
+              ...todayProgress,
+              xpEarned: todayProgress.xpEarned + xpGained,
+            },
+          },
+        },
+      }));
+
+      // Save to database
+      await db.updateDailyProgress(
+        user.id,
+        today,
+        todayProgress.completedTasks,
+        todayProgress.xpEarned + xpGained
+      );
+
+      await db.updateProfile(user.id, {
+        total_xp: newTotalXP,
+        current_level: newLevel,
+      });
+
+      console.log(`✅ Extra task completed! +${xpGained} XP`);
+    } catch (error) {
+      console.error('❌ Error completing extra task:', error);
+      alert('Error completing extra task: ' + error);
     }
   };
 
@@ -799,6 +850,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         deleteReward,
         getSlotAssignment,
         removeSlotAssignment,
+        completeExtraTask,
       }}
     >
       {children}

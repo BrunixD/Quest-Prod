@@ -10,6 +10,14 @@ export interface Task {
   completedAt?: string;
 }
 
+export interface ScheduleSlot {
+  id: string;
+  startTime: string;
+  endTime: string;
+  type: 'task' | 'meal' | 'break' | 'free';
+  label: string;
+}
+
 export type TaskCategory = 
   | 'Creative / Art'
   | 'Craft / Sewing'
