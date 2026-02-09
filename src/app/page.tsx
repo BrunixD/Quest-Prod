@@ -12,9 +12,9 @@ import { WeeklyRotation } from '@/components/WeeklyRotation';
 import { RewardsShop } from '@/components/RewardsShop';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { CelebrationAnimation } from '@/components/CelebrationAnimation';
-import { Home, Calendar, ShoppingBag, Settings, Sparkles, LogOut, User } from 'lucide-react';
-import { MonthlyCalendar } from '@/components/MonthlyCalendar';
 import { WeeklyCalendar } from '@/components/WeeklyCalendar';
+import { MonthlyCalendar } from '@/components/MonthlyCalendar';
+import { Home, Calendar, ShoppingBag, Settings, Sparkles, LogOut, User } from 'lucide-react';
 
 type TabType = 'dashboard' | 'weekly' | 'monthly' | 'rotation' | 'rewards' | 'settings';
 
@@ -99,11 +99,11 @@ export default function QuestPage() {
                   <span className="font-heading text-xl font-bold text-white">
                     {gameState.userProgress.totalXP} XP
                   </span>
-                </motion.div>  
+                </motion.div>
 
                 {/* User Menu */}
                 <div className="relative">
-                   <motion.button
+                  <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowUserMenu(!showUserMenu)}
@@ -111,9 +111,9 @@ export default function QuestPage() {
                   >
                     {gameState.userProgress.profileIcon ? (
                       <span className="text-2xl">{gameState.userProgress.profileIcon}</span>
-                    ) : user.photoURL ? (
+                    ) : user.user_metadata?.avatar_url ? (
                       <img 
-                        src={user.photoURL} 
+                        src={user.user_metadata.avatar_url} 
                         alt="Profile" 
                         className="w-6 h-6 rounded-full"
                       />
@@ -121,7 +121,7 @@ export default function QuestPage() {
                       <User className="w-5 h-5 text-white" />
                     )}
                     <span className="font-body text-sm text-white hidden sm:block">
-                      {user.displayName?.split(' ')[0] || 'Adventurer'}
+                      {user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Adventurer'}
                     </span>
                   </motion.button>
 
@@ -135,7 +135,7 @@ export default function QuestPage() {
                       >
                         <div className="p-3 border-b border-fantasy-lavender/20">
                           <p className="font-body text-sm text-fantasy-midnight dark:text-fantasy-cream font-semibold">
-                            {user.displayName}
+                            {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
                           </p>
                           <p className="font-body text-xs text-fantasy-midnight/60 dark:text-fantasy-cream/60">
                             {user.email}
