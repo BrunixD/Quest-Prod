@@ -34,13 +34,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signInWithGoogle = async () => {
+    const redirectTo = typeof window !== 'undefined' 
+      ? `${window.location.protocol}//${window.location.host}`
+      : 'https://quest-prod.vercel.app';
+
+    console.log('Redirect URL:', redirectTo); // Debug log
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+        redirectTo: redirectTo,
+        skipBrowserRedirect: false,
       },
     });
-    if (error) throw error;
+    if (error) {
+      console.error('Auth error:', error);
+      throw error;
+    }
   };
 
   const signOut = async () => {
