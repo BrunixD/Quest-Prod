@@ -12,7 +12,8 @@ import {
 } from '@/lib/storage';
 import { 
   saveGameStateToFirestore, 
-  loadGameStateFromFirestore 
+  loadGameStateFromFirestore,
+  subscribeToGameState 
 } from '@/lib/firestoreStorage';
 import { useAuth } from '@/lib/AuthContext';
 import { XP_RULES, DAILY_SCHEDULE } from '@/data/constants';
@@ -45,21 +46,24 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [gameState, setGameState] = useState<GameState>(getInitialGameState());
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { user, loading } = useAuth();
 
   // Load game state on mount or when user changes
   useEffect(() => {
     const loadData = async () => {
-      // Wait for auth to finish loading
       if (loading) {
         console.log('⏳ Auth still loading, waiting...');
         return;
       }
 
       if (user) {
+        console.log('🔵 User logged in, loading Firestore data for:', user.uid);
         const firestoreState = await loadGameStateFromFirestore(user.uid);
         if (firestoreState) {
           firestoreState.schedule = DAILY_SCHEDULE;
+          console.log('🟢 Loaded Firestore state:', firestoreState);
+          console.log('🟢 Weekly progress:', firestoreState.userProgress.weeklyProgress);
           setGameState(firestoreState);
         }
       } else {
@@ -73,22 +77,44 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       setIsLoaded(true);
     };
 
-    // Only load once when component mounts or user.uid changes
     if (!isLoaded && !loading) {
       loadData();
     }
   }, [user?.uid, loading, isLoaded]);
 
-  // Save game state whenever it changes
+  // Real-time listener for Firebase updates
   useEffect(() => {
-    if (isLoaded) {
+    if (!user || !isLoaded) return;
+
+    console.log('👂 Setting up real-time listener for user:', user.uid);
+    
+    const unsubscribe = subscribeToGameState(user.uid, (updatedState: GameState) => {
+      console.log('🔔 Received update from Firestore');
+      setIsSyncing(true);
+      updatedState.schedule = DAILY_SCHEDULE;
+      setGameState(updatedState);
+      setTimeout(() => setIsSyncing(false), 100);
+    });
+
+    return () => {
+      console.log('👋 Cleaning up listener');
+      unsubscribe();
+    };
+  }, [user?.uid, isLoaded]);
+
+  // Save game state whenever it changes (but not during sync)
+  useEffect(() => {
+    if (isLoaded && !isSyncing) {
+      console.log('💾 Saving game state...');
       if (user) {
         saveGameStateToFirestore(user.uid, gameState);
       } else {
         saveGameState(gameState);
       }
+    } else if (isSyncing) {
+      console.log('🔄 Syncing from Firestore, skip save');
     }
-  }, [gameState, isLoaded, user?.uid]);
+  }, [gameState, isLoaded, user?.uid, isSyncing]);
 
   // Check and update streak
   useEffect(() => {
@@ -141,7 +167,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   const assignTaskToSlot = (taskId: string, slotId: string, date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-        
+    
+    console.log('Assigning task:', { taskId, slotId, dateStr });
+    
     setGameState(prev => {
       const existingProgress = prev.userProgress.weeklyProgress[dateStr];
       
@@ -170,6 +198,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         },
       };
       
+      console.log('New state after assignment:', newState);
       return newState;
     });
   };
@@ -206,13 +235,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const deleteReward = (rewardId: string) => {
-    setGameState(prev => ({
-      ...prev,
-      rewards: prev.rewards.filter(r => r.id !== rewardId),
-    }));
-  };
-
   const completeTask = (taskId: string, slotId: string) => {
     const task = gameState.tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -221,12 +243,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const todayProgress = getTodayProgress();
     const xpGained = task.xpValue;
     
-    // Update task completion
     setGameState(prev => {
       const newCompletedCount = todayProgress.completedTasks + 1;
       const newXPEarned = todayProgress.xpEarned + xpGained;
       
-      // Check for all tasks bonus
       let bonusXP = 0;
       if (newCompletedCount === 4) {
         bonusXP = XP_RULES.ALL_TASKS_BONUS;
@@ -235,7 +255,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       const newTotalXP = prev.userProgress.totalXP + xpGained + bonusXP;
       const newLevel = getCurrentLevel(newTotalXP);
       
-      // Update streak if completing first task of the day
       const newStreak = todayProgress.completedTasks === 0 
         ? prev.userProgress.streak + 1 
         : prev.userProgress.streak;
@@ -403,6 +422,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setGameState(prev => ({
       ...prev,
       tasks: prev.tasks.filter(t => t.id !== taskId),
+    }));
+  };
+
+  const deleteReward = (rewardId: string) => {
+    setGameState(prev => ({
+      ...prev,
+      rewards: prev.rewards.filter(r => r.id !== rewardId),
     }));
   };
 
