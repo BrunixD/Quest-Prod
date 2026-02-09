@@ -110,7 +110,15 @@ export default function QuestPage() {
                     className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border-2 border-white/30 hover:bg-white/30 transition-colors"
                   >
                     {gameState.userProgress.profileIcon ? (
-                      <span className="text-2xl">{gameState.userProgress.profileIcon}</span>
+                      gameState.userProgress.profileIcon.startsWith('http') ? (
+                        <img 
+                          src={gameState.userProgress.profileIcon} 
+                          alt="Profile" 
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl">{gameState.userProgress.profileIcon}</span>
+                      )
                     ) : user.user_metadata?.avatar_url ? (
                       <img 
                         src={user.user_metadata.avatar_url} 

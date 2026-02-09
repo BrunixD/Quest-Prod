@@ -1,17 +1,58 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
-import { Settings as SettingsIcon, Volume2, VolumeX, Moon, Sun, RotateCcw, Smile } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { Settings as SettingsIcon, Volume2, VolumeX, Moon, Sun, RotateCcw, Smile, User, Upload } from 'lucide-react';
 
 export const SettingsPanel: React.FC = () => {
   const { gameState, toggleDarkMode, toggleSound, resetProgress, setProfileIcon } = useGame();
+  const { user } = useAuth();
   const { soundEnabled, darkMode } = gameState.settings;
+  const [uploading, setUploading] = useState(false);
 
   const handleReset = () => {
     if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
       resetProgress();
+    }
+  };
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Set the profile icon to the uploaded image URL
+      setProfileIcon(data.publicUrl);
+      
+    } catch (error: any) {
+      alert('Error uploading photo: ' + error.message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -25,20 +66,64 @@ export const SettingsPanel: React.FC = () => {
       </h2>
 
       <div className="space-y-4">
-        {/* Profile Icon Picker */}
+        {/* Profile Icon & Picture */}
         <div className="bg-gradient-to-r from-fantasy-peach/20 to-fantasy-lavender/20 rounded-2xl p-6 border-2 border-fantasy-peach/30">
           <div className="flex items-center gap-3 mb-4">
             <Smile className="w-6 h-6 text-fantasy-peach" />
             <div>
               <h3 className="font-heading text-lg font-semibold text-fantasy-midnight dark:text-fantasy-cream">
-                Profile Icon
+                Profile Picture
               </h3>
               <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">
-                Choose your adventure icon
+                Choose an emoji or upload a photo
               </p>
             </div>
           </div>
+
+          {/* Current Profile Display */}
+          <div className="mb-4 flex justify-center">
+            {gameState.userProgress.profileIcon ? (
+              gameState.userProgress.profileIcon.startsWith('http') ? (
+                <img 
+                  src={gameState.userProgress.profileIcon} 
+                  alt="Profile" 
+                  className="w-24 h-24 rounded-full object-cover border-4 border-primary-500/30"
+                />
+              ) : (
+                <div className="text-8xl">{gameState.userProgress.profileIcon}</div>
+              )
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-fantasy-lavender/20 flex items-center justify-center">
+                <User className="w-12 h-12 text-fantasy-midnight/40" />
+              </div>
+            )}
+          </div>
+
+          {/* Upload Photo Button */}
+          <div className="mb-4">
+            <label className="w-full cursor-pointer">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-heading font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <Upload className="w-5 h-5" />
+                {uploading ? 'Uploading...' : 'Upload Photo'}
+              </motion.div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+            </label>
+          </div>
           
+          {/* Emoji Icons */}
+          <p className="font-body text-xs font-bold text-fantasy-midnight/60 dark:text-fantasy-cream/60 mb-2">
+            Or choose an emoji:
+          </p>
           <div className="grid grid-cols-6 gap-3 mb-4">
             {iconOptions.map(icon => (
               <motion.button
@@ -57,13 +142,14 @@ export const SettingsPanel: React.FC = () => {
             ))}
           </div>
 
+          {/* Clear Icon Button */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setProfileIcon(undefined)}
             className="w-full px-4 py-2 bg-fantasy-midnight/10 dark:bg-fantasy-cream/10 rounded-lg font-body text-sm hover:bg-fantasy-midnight/20 dark:hover:bg-fantasy-cream/20 transition-colors"
           >
-            Reset to Google Photo
+            Clear Profile Picture
           </motion.button>
         </div>
 
