@@ -70,11 +70,26 @@ export const DEFAULT_REWARDS: Omit<Reward, 'id' | 'purchased' | 'purchasedAt'>[]
 ];
 
 export const LEVELS: Level[] = [
-  { level: 1, title: 'New Adventurer', xpRequired: 0, icon: '🌱' },
-  { level: 2, title: 'Hobbyist', xpRequired: 100, icon: '🎯' },
-  { level: 3, title: 'Creator', xpRequired: 250, icon: '✨' },
-  { level: 4, title: 'Artisan', xpRequired: 500, icon: '🎨' },
-  { level: 5, title: 'Master Crafter', xpRequired: 900, icon: '👑' },
+  { level: 1, title: 'Mortal Realm Dreamer', xpRequired: 0, icon: '🌸' },
+  { level: 2, title: 'Spring Court Wanderer', xpRequired: 50, icon: '🌿' },
+  { level: 3, title: 'Fae Marked', xpRequired: 100, icon: '✨' },
+  { level: 4, title: 'Night Court Visitor', xpRequired: 160, icon: '🌙' },
+  { level: 5, title: 'Starfall Witness', xpRequired: 230, icon: '⭐' },
+  { level: 6, title: 'Velaris Resident', xpRequired: 310, icon: '🏙️' },
+  { level: 7, title: 'Rainbow Painter', xpRequired: 400, icon: '🎨' },
+  { level: 8, title: 'Illyrian Trainee', xpRequired: 500, icon: '⚔️' },
+  { level: 9, title: 'Library Dweller', xpRequired: 610, icon: '📚' },
+  { level: 10, title: 'Winged Warrior', xpRequired: 730, icon: '🦅' },
+  { level: 11, title: 'Priestess Scholar', xpRequired: 860, icon: '📖' },
+  { level: 12, title: 'Valkyrie in Training', xpRequired: 1000, icon: '🗡️' },
+  { level: 13, title: 'Court Emissary', xpRequired: 1150, icon: '💌' },
+  { level: 14, title: 'Daemati Apprentice', xpRequired: 1310, icon: '🧠' },
+  { level: 15, title: 'Inner Circle Ally', xpRequired: 1480, icon: '💫' },
+  { level: 16, title: 'Seer of Visions', xpRequired: 1660, icon: '🔮' },
+  { level: 17, title: 'High Fae Noble', xpRequired: 1850, icon: '👑' },
+  { level: 18, title: 'Made by Cauldron', xpRequired: 2050, icon: '🌊' },
+  { level: 19, title: 'High Lady/Lord', xpRequired: 2260, icon: '💎' },
+  { level: 20, title: 'Cauldron Blessed', xpRequired: 2500, icon: '✨👑' },
 ];
 
 export const DAILY_SCHEDULE: TimeSlot[] = [
@@ -88,8 +103,8 @@ export const DAILY_SCHEDULE: TimeSlot[] = [
 ];
 
 export const XP_RULES = {
-  COMPLETE_TASK: 15,
-  COMPLETE_HARD_TASK: 20,
+  COMPLETE_TASK: 20,
+  COMPLETE_HARD_TASK: 50,
   ALL_TASKS_BONUS: 25,
   WEEKLY_CONSISTENCY_BONUS: 50,
   SKIP_TASK_PENALTY: -5,

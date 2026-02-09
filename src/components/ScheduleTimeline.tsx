@@ -49,14 +49,14 @@ export const ScheduleTimeline: React.FC = () => {
     return gameState.userProgress.weeklyProgress[today];
   };
 
-  const isSlotCompleted = (taskId: string) => {
+   const isSlotCompleted = (slotId: string) => {
     const todayProgress = getTodayProgress();
-    return todayProgress?.tasksCompleted.includes(taskId);
+    return todayProgress?.slotsCompleted?.includes(slotId);
   };
 
-  const isSlotSkipped = (taskId: string) => {
+  const isSlotSkipped = (slotId: string) => {
     const todayProgress = getTodayProgress();
-    return todayProgress?.tasksSkipped.includes(taskId);
+    return todayProgress?.slotsSkipped?.includes(slotId);
   };
 
   return (
@@ -73,8 +73,8 @@ export const ScheduleTimeline: React.FC = () => {
           const assignedTaskId = slot.type === 'task' ? getSlotAssignment(new Date(), slot.id) : null;
           const assignedTask = assignedTaskId ? gameState.tasks.find(t => t.id === assignedTaskId) : null;
           const isTaskSlot = slot.type === 'task';
-          const isCompleted = assignedTask ? isSlotCompleted(assignedTask.id) : false;
-          const isSkipped = assignedTask ? isSlotSkipped(assignedTask.id) : false;
+          const isCompleted = isSlotCompleted(slot.id);
+          const isSkipped = isSlotSkipped(slot.id);
           const isDisabled = isCompleted || isSkipped;
 
           return (

@@ -45,24 +45,27 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [gameState, setGameState] = useState<GameState>(getInitialGameState());
   const [isLoaded, setIsLoaded] = useState(false);
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   // Load game state on mount or when user changes
   useEffect(() => {
     const loadData = async () => {
+      // Wait for auth to finish loading
+      if (loading) {
+        console.log('⏳ Auth still loading, waiting...');
+        return;
+      }
+
       if (user) {
-        // Load from Firestore if logged in
         const firestoreState = await loadGameStateFromFirestore(user.uid);
         if (firestoreState) {
-          // Force update schedule to latest version
           firestoreState.schedule = DAILY_SCHEDULE;
           setGameState(firestoreState);
         }
       } else {
-        // Load from LocalStorage if not logged in
+        console.log('❌ No user, loading LocalStorage');
         const loadedState = loadGameState();
         if (loadedState) {
-          // Force update schedule to latest version
           loadedState.schedule = DAILY_SCHEDULE;
           setGameState(loadedState);
         }
@@ -70,21 +73,22 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       setIsLoaded(true);
     };
 
-    loadData();
-  }, [user]);
+    // Only load once when component mounts or user.uid changes
+    if (!isLoaded && !loading) {
+      loadData();
+    }
+  }, [user?.uid, loading, isLoaded]);
 
   // Save game state whenever it changes
   useEffect(() => {
     if (isLoaded) {
       if (user) {
-        // Save to Firestore if logged in
         saveGameStateToFirestore(user.uid, gameState);
       } else {
-        // Save to LocalStorage if not logged in
         saveGameState(gameState);
       }
     }
-  }, [gameState, isLoaded, user]);
+  }, [gameState, isLoaded, user?.uid]);
 
   // Check and update streak
   useEffect(() => {
@@ -109,15 +113,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   const getTodayProgress = (): DailyProgress => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    return gameState.userProgress.weeklyProgress[today] || {
+    const existing = gameState.userProgress.weeklyProgress[today];
+    
+    return {
       date: today,
-      completedTasks: 0,
+      completedTasks: existing?.completedTasks || 0,
       totalTasks: 4,
-      xpEarned: 0,
-      tasksCompleted: [],
-      tasksSkipped: [],
-      tasksPenalty: [],
-      slotAssignments: {},
+      xpEarned: existing?.xpEarned || 0,
+      tasksCompleted: existing?.tasksCompleted || [],
+      tasksSkipped: existing?.tasksSkipped || [],
+      tasksPenalty: existing?.tasksPenalty || [],
+      slotAssignments: existing?.slotAssignments || {},
+      slotsCompleted: existing?.slotsCompleted || [],
+      slotsSkipped: existing?.slotsSkipped || [],
     };
   };
 
@@ -133,31 +141,37 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   const assignTaskToSlot = (taskId: string, slotId: string, date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    
-    setGameState(prev => ({
-      ...prev,
-      userProgress: {
-        ...prev.userProgress,
-        weeklyProgress: {
-          ...prev.userProgress.weeklyProgress,
-          [dateStr]: {
-            ...(prev.userProgress.weeklyProgress[dateStr] || {
+        
+    setGameState(prev => {
+      const existingProgress = prev.userProgress.weeklyProgress[dateStr];
+      
+      const newState = {
+        ...prev,
+        userProgress: {
+          ...prev.userProgress,
+          weeklyProgress: {
+            ...prev.userProgress.weeklyProgress,
+            [dateStr]: {
               date: dateStr,
-              completedTasks: 0,
+              completedTasks: existingProgress?.completedTasks || 0,
               totalTasks: 4,
-              xpEarned: 0,
-              tasksCompleted: [],
-              tasksSkipped: [],
-              tasksPenalty: [],
-            }),
-            slotAssignments: {
-              ...(prev.userProgress.weeklyProgress[dateStr]?.slotAssignments || {}),
-              [slotId]: taskId,
+              xpEarned: existingProgress?.xpEarned || 0,
+              tasksCompleted: existingProgress?.tasksCompleted || [],
+              tasksSkipped: existingProgress?.tasksSkipped || [],
+              tasksPenalty: existingProgress?.tasksPenalty || [],
+              slotsCompleted: existingProgress?.slotsCompleted || [],
+              slotsSkipped: existingProgress?.slotsSkipped || [],
+              slotAssignments: {
+                ...(existingProgress?.slotAssignments || {}),
+                [slotId]: taskId,
+              },
             },
           },
         },
-      },
-    }));
+      };
+      
+      return newState;
+    });
   };
 
   const getSlotAssignment = (date: Date, slotId: string): string | undefined => {
@@ -209,10 +223,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     
     // Update task completion
     setGameState(prev => {
-      const updatedTasks = prev.tasks.map(t =>
-        t.id === taskId ? { ...t, completed: true, completedAt: today } : t
-      );
-
       const newCompletedCount = todayProgress.completedTasks + 1;
       const newXPEarned = todayProgress.xpEarned + xpGained;
       
@@ -232,7 +242,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
       return {
         ...prev,
-        tasks: updatedTasks,
         userProgress: {
           ...prev.userProgress,
           totalXP: newTotalXP,
@@ -244,13 +253,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
               ...todayProgress,
               completedTasks: newCompletedCount,
               xpEarned: newXPEarned + bonusXP,
-              tasksCompleted: [...todayProgress.tasksCompleted, taskId],
+              tasksCompleted: [...(todayProgress.tasksCompleted || []), taskId],
+              slotsCompleted: [...(todayProgress.slotsCompleted || []), slotId],
             },
           },
         },
-        schedule: prev.schedule.map(slot =>
-          slot.id === slotId ? { ...slot, taskId: undefined } : slot
-        ),
       };
     });
   };
@@ -269,7 +276,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           [today]: {
             ...todayProgress,
             xpEarned: todayProgress.xpEarned + XP_RULES.SKIP_TASK_PENALTY,
-            tasksSkipped: [...todayProgress.tasksSkipped, taskId],
+            tasksSkipped: [...(todayProgress.tasksSkipped || []), taskId],
+            slotsSkipped: [...(todayProgress.slotsSkipped || []), slotId],
           },
         },
       },

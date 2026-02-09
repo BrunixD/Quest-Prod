@@ -3,22 +3,27 @@ import { db } from './firebase';
 import { GameState } from '@/types';
 import { getInitialGameState } from './storage';
 
-// Helper function to remove undefined values
-const removeUndefined = (obj: any): any => {
+// Helper function to remove undefined values and convert them to null
+const cleanForFirestore = (obj: any): any => {
   if (obj === null || obj === undefined) {
     return null;
   }
   
   if (Array.isArray(obj)) {
-    return obj.map(removeUndefined);
+    return obj.map(cleanForFirestore);
   }
   
   if (typeof obj === 'object') {
     const cleaned: any = {};
     for (const key in obj) {
       const value = obj[key];
-      if (value !== undefined) {
-        cleaned[key] = removeUndefined(value);
+      // Keep null, convert undefined to null, otherwise clean recursively
+      if (value === undefined) {
+        cleaned[key] = null;
+      } else if (value === null) {
+        cleaned[key] = null;
+      } else {
+        cleaned[key] = cleanForFirestore(value);
       }
     }
     return cleaned;
@@ -30,16 +35,18 @@ const removeUndefined = (obj: any): any => {
 export const saveGameStateToFirestore = async (userId: string, state: GameState): Promise<void> => {
   try {
     const userDocRef = doc(db, 'users', userId);
-    
-    // Clean the state to remove undefined values
-    const cleanedState = removeUndefined(state);
+
+    const cleanedState = cleanForFirestore(state);
     
     await setDoc(userDocRef, {
       gameState: cleanedState,
       lastUpdated: new Date().toISOString(),
     });
+    
   } catch (error) {
-    console.error('Error saving to Firestore:', error);
+    console.error('Error details:', error);
+    console.error('Error code:', (error as any).code);
+    console.error('Error message:', (error as any).message);
     throw error;
   }
 };
