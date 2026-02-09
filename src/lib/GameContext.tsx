@@ -11,10 +11,10 @@ import {
   getXPProgress 
 } from '@/lib/storage';
 import { 
-  saveGameStateToFirestore, 
-  loadGameStateFromFirestore,
-  subscribeToGameState 
-} from '@/lib/firestoreStorage';
+  saveGameStateToSupabase,
+  loadGameStateFromSupabase,
+  subscribeToGameState
+} from '@/lib/supabaseStorage';
 import { useAuth } from '@/lib/AuthContext';
 import { XP_RULES, DAILY_SCHEDULE } from '@/data/constants';
 import { format, startOfWeek, differenceInDays } from 'date-fns';
@@ -58,13 +58,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (user) {
-        console.log('🔵 User logged in, loading Firestore data for:', user.uid);
-        const firestoreState = await loadGameStateFromFirestore(user.uid);
-        if (firestoreState) {
-          firestoreState.schedule = DAILY_SCHEDULE;
-          console.log('🟢 Loaded Firestore state:', firestoreState);
-          console.log('🟢 Weekly progress:', firestoreState.userProgress.weeklyProgress);
-          setGameState(firestoreState);
+        console.log('🔵 User logged in, loading Supabase data for:', user.id);
+        const supabaseState = await loadGameStateFromSupabase(user.id);
+        if (supabaseState) {
+          supabaseState.schedule = DAILY_SCHEDULE;
+          console.log('🟢 Loaded Supabase state:', supabaseState);
+          console.log('🟢 Weekly progress:', supabaseState.userProgress.weeklyProgress);
+          setGameState(supabaseState);
         }
       } else {
         console.log('❌ No user, loading LocalStorage');
@@ -80,16 +80,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     if (!isLoaded && !loading) {
       loadData();
     }
-  }, [user?.uid, loading, isLoaded]);
+  }, [user?.id, loading, isLoaded]);
 
-  // Real-time listener for Firebase updates
+  // Real-time listener for Supabase updates
   useEffect(() => {
     if (!user || !isLoaded) return;
 
-    console.log('👂 Setting up real-time listener for user:', user.uid);
+    console.log('👂 Setting up real-time listener for user:', user.id);
     
-    const unsubscribe = subscribeToGameState(user.uid, (updatedState: GameState) => {
-      console.log('🔔 Received update from Firestore');
+    const unsubscribe = subscribeToGameState(user.id, (updatedState: GameState) => {
+      console.log('🔔 Received update from Supabase');
       setIsSyncing(true);
       updatedState.schedule = DAILY_SCHEDULE;
       setGameState(updatedState);
@@ -100,21 +100,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       console.log('👋 Cleaning up listener');
       unsubscribe();
     };
-  }, [user?.uid, isLoaded]);
+  }, [user?.id, isLoaded]);
 
   // Save game state whenever it changes (but not during sync)
   useEffect(() => {
     if (isLoaded && !isSyncing) {
       console.log('💾 Saving game state...');
       if (user) {
-        saveGameStateToFirestore(user.uid, gameState);
+        saveGameStateToSupabase(user.id, gameState);
       } else {
         saveGameState(gameState);
       }
     } else if (isSyncing) {
-      console.log('🔄 Syncing from Firestore, skip save');
+      console.log('🔄 Syncing from Supabase, skip save');
     }
-  }, [gameState, isLoaded, user?.uid, isSyncing]);
+  }, [gameState, isLoaded, user?.id, isSyncing]);
 
   // Check and update streak
   useEffect(() => {
