@@ -5,8 +5,9 @@ import { getInitialGameState } from './storage';
 export const saveGameStateToSupabase = async (userId: string, state: GameState): Promise<void> => {
   try {
     console.log('💾 Saving to Supabase for user:', userId);
+    console.log('📦 Data being saved:', state);
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('user_data')
       .upsert({
         user_id: userId,
@@ -14,10 +15,15 @@ export const saveGameStateToSupabase = async (userId: string, state: GameState):
         last_updated: new Date().toISOString(),
       }, {
         onConflict: 'user_id'
-      });
+      })
+      .select();
 
-    if (error) throw error;
-    console.log('✅ Save successful!');
+    if (error) {
+      console.error('❌ Supabase save error:', error);
+      throw error;
+    }
+    
+    console.log('✅ Save successful! Saved data:', data);
   } catch (error) {
     console.error('❌ Error saving to Supabase:', error);
     throw error;
@@ -36,16 +42,17 @@ export const loadGameStateFromSupabase = async (userId: string): Promise<GameSta
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No data found, create initial state
         console.log('🆕 No existing data, creating initial state');
         const initialState = getInitialGameState();
         await saveGameStateToSupabase(userId, initialState);
         return initialState;
       }
+      console.error('❌ Load error:', error);
       throw error;
     }
 
-    console.log('✅ Loaded successfully:', data.game_state);
+    console.log('✅ Loaded successfully!');
+    console.log('📦 Loaded data:', data.game_state);
     return data.game_state as GameState;
   } catch (error) {
     console.error('❌ Error loading from Supabase:', error);
