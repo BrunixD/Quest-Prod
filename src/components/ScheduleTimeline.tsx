@@ -6,11 +6,10 @@ import { useGame } from '@/lib/GameContext';
 import { Clock, Coffee, Utensils, Sparkles, CheckCircle2, XCircle, Trash2, Plus } from 'lucide-react';
 
 export const ScheduleTimeline: React.FC = () => {
-  const { gameState, completeTask, skipTask, getSlotAssignment, removeSlotAssignment, assignTaskToSlot, completeExtraTask } = useGame();
+  const { gameState, completeTask, skipTask, getSlotAssignment, removeSlotAssignment, assignTaskToSlot, completeExtraTask, getTodayProgress } = useGame();
   const { schedule } = gameState;
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [showExtraTasks, setShowExtraTasks] = useState(false);
-  const [completedExtraTasks, setCompletedExtraTasks] = useState<string[]>([]);
 
   const getSlotIcon = (type: string) => {
     switch (type) {
@@ -22,14 +21,14 @@ export const ScheduleTimeline: React.FC = () => {
   };
 
   const getSlotColor = (type: string, isCompleted?: boolean, isSkipped?: boolean) => {
-    if (isCompleted) return 'from-green-500/20 to-green-600/20 border-green-500/50 opacity-60';
-    if (isSkipped) return 'from-red-500/20 to-red-600/20 border-red-500/50 opacity-60';
+    if (isCompleted) return 'from-green-500/20 to-green-600/20 border-green-400/50 opacity-70';
+    if (isSkipped) return 'from-red-500/20 to-red-600/20 border-red-400/50 opacity-70';
     
     switch (type) {
-      case 'meal': return 'from-fantasy-peach/30 to-fantasy-rose/30 border-fantasy-peach';
-      case 'break': return 'from-fantasy-sage/30 to-fantasy-lavender/30 border-fantasy-sage';
-      case 'free': return 'from-fantasy-gold/30 to-fantasy-peach/30 border-fantasy-gold';
-      default: return 'from-primary-500/20 to-fantasy-lavender/30 border-primary-400';
+      case 'meal': return 'from-velaris-500/20 to-rhysand-500/20 border-velaris-400/30';
+      case 'break': return 'from-starlight-500/20 to-velaris-500/20 border-starlight-400/30';
+      case 'free': return 'from-violet-500/20 to-purple-500/20 border-violet-400/30';
+      default: return 'from-night-600/40 to-velaris-600/40 border-velaris-400/40';
     }
   };
 
@@ -46,9 +45,9 @@ export const ScheduleTimeline: React.FC = () => {
     removeSlotAssignment(today, slotId);
   };
 
-  const getTodayProgress = () => {
-    const today = new Date().toISOString().split('T')[0];
-    return gameState.userProgress.weeklyProgress[today];
+  const getCompletedExtraTasks = () => {
+    const todayProgress = getTodayProgress();
+    return todayProgress.extraTasksCompleted || [];
   };
 
   const isSlotCompleted = (slotId: string) => {
@@ -63,14 +62,13 @@ export const ScheduleTimeline: React.FC = () => {
 
   const handleCompleteExtraTask = async (taskId: string) => {
     await completeExtraTask(taskId);
-    setCompletedExtraTasks(prev => [...prev, taskId]);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-heading text-2xl font-bold text-fantasy-midnight dark:text-fantasy-cream flex items-center gap-2">
-          <Clock className="w-6 h-6 text-primary-500" />
+        <h2 className="font-heading text-2xl font-bold bg-gradient-to-r from-violet-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2">
+          <Clock className="w-6 h-6 text-velaris-400" />
           Today&apos;s Quest Schedule
         </h2>
       </div>
@@ -91,46 +89,46 @@ export const ScheduleTimeline: React.FC = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
-              className={`bg-gradient-to-r ${getSlotColor(slot.type, isCompleted, isSkipped)} border-2 rounded-xl p-4 backdrop-blur-sm transition-all ${!isDisabled && 'hover:shadow-lg'}`}
+              className={`bg-gradient-to-r ${getSlotColor(slot.type, isCompleted, isSkipped)} border-2 rounded-xl p-4 backdrop-blur-sm transition-all ${!isDisabled && 'hover:shadow-lg hover:glow-purple'}`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="text-fantasy-midnight/80 dark:text-fantasy-cream/80">
+                  <div className="text-violet-200">
                     {getSlotIcon(slot.type)}
                   </div>
                   
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-heading text-lg font-semibold text-fantasy-midnight dark:text-fantasy-cream">
+                      <h3 className="font-heading text-lg font-semibold text-violet-100">
                         {slot.label}
                       </h3>
                       {assignedTask && (
                         <>
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            assignedTask.difficulty === 'Hard' ? 'bg-red-500/20 text-red-700 dark:text-red-300' :
-                            assignedTask.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300' :
-                            'bg-green-500/20 text-green-700 dark:text-green-300'
+                            assignedTask.difficulty === 'Hard' ? 'bg-red-500/30 text-red-200' :
+                            assignedTask.difficulty === 'Medium' ? 'bg-yellow-500/30 text-yellow-200' :
+                            'bg-green-500/30 text-green-200'
                           }`}>
                             {assignedTask.difficulty}
                           </span>
                           {isCompleted && (
-                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-500/30 text-green-700 dark:text-green-300">
+                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-500/40 text-green-200">
                               ✓ Completed
                             </span>
                           )}
                           {isSkipped && (
-                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/30 text-red-700 dark:text-red-300">
+                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/40 text-red-200">
                               ✕ Skipped
                             </span>
                           )}
                         </>
                       )}
                     </div>
-                    <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">
+                    <p className="font-body text-sm text-violet-300/70">
                       {slot.startTime} - {slot.endTime}
                     </p>
                     {assignedTask && (
-                      <p className="font-body text-sm text-fantasy-midnight dark:text-fantasy-cream mt-1 font-semibold">
+                      <p className="font-body text-sm text-violet-200 mt-1 font-semibold">
                         📋 {assignedTask.title}
                       </p>
                     )}
@@ -165,14 +163,14 @@ export const ScheduleTimeline: React.FC = () => {
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => handleRemoveAssignment(slot.id)}
-                              className="px-3 py-2 bg-fantasy-midnight/10 hover:bg-fantasy-midnight/20 dark:bg-fantasy-cream/10 dark:hover:bg-fantasy-cream/20 rounded-lg transition-colors"
+                              className="px-3 py-2 glass-card hover:bg-velaris-500/20 rounded-lg transition-colors"
                               title="Remove task"
                             >
-                              <Trash2 className="w-4 h-4 text-fantasy-midnight dark:text-fantasy-cream" />
+                              <Trash2 className="w-4 h-4 text-violet-200" />
                             </motion.button>
                           </>
                         ) : (
-                          <div className="px-4 py-2 bg-fantasy-midnight/10 dark:bg-fantasy-cream/10 rounded-lg font-heading font-semibold text-fantasy-midnight/50 dark:text-fantasy-cream/50">
+                          <div className="px-4 py-2 glass-card rounded-lg font-heading font-semibold text-violet-300/50">
                             {isCompleted ? 'Done' : 'Skipped'}
                           </div>
                         )}
@@ -182,7 +180,7 @@ export const ScheduleTimeline: React.FC = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setSelectedSlot(slot.id)}
-                        className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-heading font-semibold transition-colors"
+                        className="px-4 py-2 bg-velaris-500 hover:bg-velaris-600 text-white rounded-lg font-heading font-semibold transition-colors glow-purple"
                       >
                         Assign Task
                       </motion.button>
@@ -197,9 +195,9 @@ export const ScheduleTimeline: React.FC = () => {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="mt-4 pt-4 border-t-2 border-fantasy-midnight/10 dark:border-fantasy-cream/10"
+                    className="mt-4 pt-4 border-t-2 border-velaris-500/20"
                   >
-                    <h4 className="font-heading font-semibold text-fantasy-midnight dark:text-fantasy-cream mb-3">
+                    <h4 className="font-heading font-semibold text-violet-200 mb-3">
                       Select a task:
                     </h4>
                     <div className="max-h-96 overflow-y-auto pr-2 space-y-4">
@@ -219,7 +217,7 @@ export const ScheduleTimeline: React.FC = () => {
 
                             return (
                               <div key={category}>
-                                <h5 className="font-body text-xs font-bold text-fantasy-midnight/60 dark:text-fantasy-cream/60 mb-2 flex items-center gap-1">
+                                <h5 className="font-body text-xs font-bold text-violet-300/70 mb-2 flex items-center gap-1">
                                   <span>{categoryIcon}</span>
                                   {category}
                                 </h5>
@@ -230,21 +228,21 @@ export const ScheduleTimeline: React.FC = () => {
                                       whileHover={{ scale: 1.02 }}
                                       whileTap={{ scale: 0.98 }}
                                       onClick={() => handleAssignTask(slot.id, task.id)}
-                                      className="text-left p-3 bg-white/50 dark:bg-fantasy-midnight/50 rounded-lg border-2 border-fantasy-lavender/30 hover:border-primary-400 transition-all"
+                                      className="text-left p-3 glass-card rounded-lg border-2 border-velaris-400/20 hover:border-velaris-400/50 transition-all"
                                     >
                                       <div className="flex flex-col gap-1">
-                                        <span className="font-body text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream line-clamp-1">
+                                        <span className="font-body text-sm font-semibold text-violet-100 line-clamp-1">
                                           {task.title}
                                         </span>
                                         <div className="flex gap-1 flex-wrap">
                                           <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                                            task.difficulty === 'Hard' ? 'bg-red-500/20 text-red-700 dark:text-red-300' :
-                                            task.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300' :
-                                            'bg-green-500/20 text-green-700 dark:text-green-300'
+                                            task.difficulty === 'Hard' ? 'bg-red-500/30 text-red-200' :
+                                            task.difficulty === 'Medium' ? 'bg-yellow-500/30 text-yellow-200' :
+                                            'bg-green-500/30 text-green-200'
                                           }`}>
                                             {task.difficulty}
                                           </span>
-                                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary-500/20 text-primary-700 dark:text-primary-300 font-bold">
+                                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-velaris-500/30 text-velaris-200 font-bold">
                                             +{task.xpValue}
                                           </span>
                                         </div>
@@ -257,7 +255,7 @@ export const ScheduleTimeline: React.FC = () => {
                           });
                         })()
                       ) : (
-                        <p className="text-center text-fantasy-midnight/60 dark:text-fantasy-cream/60 py-4">
+                        <p className="text-center text-violet-300/60 py-4">
                           No tasks available. Go to Tasks to create some!
                         </p>
                       )}
@@ -266,7 +264,7 @@ export const ScheduleTimeline: React.FC = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setSelectedSlot(null)}
-                      className="mt-3 w-full px-4 py-2 bg-fantasy-midnight/10 dark:bg-fantasy-cream/10 rounded-lg font-body text-sm hover:bg-fantasy-midnight/20 dark:hover:bg-fantasy-cream/20 transition-colors"
+                      className="mt-3 w-full px-4 py-2 glass-card rounded-lg font-body text-sm hover:bg-velaris-500/20 transition-colors"
                     >
                       Cancel
                     </motion.button>
@@ -279,14 +277,14 @@ export const ScheduleTimeline: React.FC = () => {
       </div>
 
       {/* Extra Tasks Section */}
-      <div className="mt-8 bg-gradient-to-br from-fantasy-gold/20 to-fantasy-peach/20 rounded-2xl p-6 border-2 border-fantasy-gold/30">
+      <div className="mt-8 glass-card-dark rounded-2xl p-6 border-2 border-violet-500/30 glow-purple">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-heading text-xl font-bold text-fantasy-midnight dark:text-fantasy-cream flex items-center gap-2">
-              <Plus className="w-6 h-6 text-fantasy-gold" />
+            <h3 className="font-heading text-xl font-bold bg-gradient-to-r from-yellow-300 to-amber-300 bg-clip-text text-transparent flex items-center gap-2">
+              <Plus className="w-6 h-6 text-yellow-400" />
               Bonus Tasks (Unlimited!)
             </h3>
-            <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60 mt-1">
+            <p className="font-body text-sm text-violet-300/70 mt-1">
               Complete as many extra tasks as you want for bonus XP!
             </p>
           </div>
@@ -294,7 +292,7 @@ export const ScheduleTimeline: React.FC = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowExtraTasks(!showExtraTasks)}
-            className="px-4 py-2 bg-fantasy-gold hover:bg-fantasy-gold/80 text-fantasy-midnight rounded-lg font-heading font-semibold transition-colors"
+            className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-night-900 rounded-lg font-heading font-semibold transition-colors"
           >
             {showExtraTasks ? 'Hide' : 'Show Tasks'}
           </motion.button>
@@ -311,6 +309,7 @@ export const ScheduleTimeline: React.FC = () => {
               {(() => {
                 const categories = Array.from(new Set(availableTasks.map(t => t.category)));
                 return categories.map(category => {
+                  const completedExtraTasks = getCompletedExtraTasks();
                   const categoryTasks = availableTasks.filter(t => t.category === category && !completedExtraTasks.includes(t.id));
                   if (categoryTasks.length === 0) return null;
                   
@@ -325,7 +324,7 @@ export const ScheduleTimeline: React.FC = () => {
 
                   return (
                     <div key={category}>
-                      <h5 className="font-body text-sm font-bold text-fantasy-midnight/70 dark:text-fantasy-cream/70 mb-2 flex items-center gap-1">
+                      <h5 className="font-body text-sm font-bold text-violet-200 mb-2 flex items-center gap-1">
                         <span className="text-xl">{categoryIcon}</span>
                         {category}
                       </h5>
@@ -334,21 +333,21 @@ export const ScheduleTimeline: React.FC = () => {
                           <motion.div
                             key={task.id}
                             whileHover={{ scale: 1.02 }}
-                            className="p-3 bg-white/50 dark:bg-fantasy-midnight/50 rounded-lg border-2 border-fantasy-lavender/30 flex items-center justify-between"
+                            className="p-3 glass-card rounded-lg border-2 border-velaris-400/20 flex items-center justify-between"
                           >
                             <div className="flex-1">
-                              <span className="font-body text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream">
+                              <span className="font-body text-sm font-semibold text-violet-100">
                                 {task.title}
                               </span>
                               <div className="flex gap-1 mt-1">
                                 <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                                  task.difficulty === 'Hard' ? 'bg-red-500/20 text-red-700 dark:text-red-300' :
-                                  task.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300' :
-                                  'bg-green-500/20 text-green-700 dark:text-green-300'
+                                  task.difficulty === 'Hard' ? 'bg-red-500/30 text-red-200' :
+                                  task.difficulty === 'Medium' ? 'bg-yellow-500/30 text-yellow-200' :
+                                  'bg-green-500/30 text-green-200'
                                 }`}>
                                   {task.difficulty}
                                 </span>
-                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary-500/20 text-primary-700 dark:text-primary-300 font-bold">
+                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-velaris-500/30 text-velaris-200 font-bold">
                                   +{task.xpValue}
                                 </span>
                               </div>
@@ -370,39 +369,42 @@ export const ScheduleTimeline: React.FC = () => {
               })()}
 
               {/* Completed Extra Tasks */}
-              {completedExtraTasks.length > 0 && (
-                <div className="mt-6 pt-6 border-t-2 border-fantasy-gold/20">
-                  <h5 className="font-body text-sm font-bold text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5" />
-                    Completed Bonus Tasks Today ({completedExtraTasks.length})
-                  </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {completedExtraTasks.map(taskId => {
-                      const task = gameState.tasks.find(t => t.id === taskId);
-                      if (!task) return null;
-                      
-                      return (
-                        <div
-                          key={taskId}
-                          className="p-3 bg-green-500/10 rounded-lg border-2 border-green-500/30 flex items-center gap-3"
-                        >
-                          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            <span className="font-body text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream">
-                              {task.title}
-                            </span>
-                            <div className="flex gap-1 mt-1">
-                              <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-700 dark:text-green-300 font-bold">
-                                +{task.xpValue} XP
+              {(() => {
+                const completedExtraTasks = getCompletedExtraTasks();
+                return completedExtraTasks.length > 0 && (
+                  <div className="mt-6 pt-6 border-t-2 border-velaris-500/20">
+                    <h5 className="font-body text-sm font-bold text-green-300 mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5" />
+                      Completed Bonus Tasks Today ({completedExtraTasks.length})
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {completedExtraTasks.map(taskId => {
+                        const task = gameState.tasks.find(t => t.id === taskId);
+                        if (!task) return null;
+                        
+                        return (
+                          <div
+                            key={taskId}
+                            className="p-3 bg-green-500/10 rounded-lg border-2 border-green-400/30 flex items-center gap-3"
+                          >
+                            <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+                            <div className="flex-1">
+                              <span className="font-body text-sm font-semibold text-violet-100">
+                                {task.title}
                               </span>
+                              <div className="flex gap-1 mt-1">
+                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-500/30 text-green-200 font-bold">
+                                  +{task.xpValue} XP
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </motion.div>
           )}
         </AnimatePresence>

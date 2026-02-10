@@ -32,7 +32,6 @@ export const SettingsPanel: React.FC = () => {
       const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
@@ -41,12 +40,10 @@ export const SettingsPanel: React.FC = () => {
         throw uploadError;
       }
 
-      // Get public URL
       const { data } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // Set the profile icon to the uploaded image URL
       setProfileIcon(data.publicUrl);
       
     } catch (error: any) {
@@ -60,21 +57,21 @@ export const SettingsPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="font-heading text-2xl font-bold text-fantasy-midnight dark:text-fantasy-cream flex items-center gap-2">
-        <SettingsIcon className="w-6 h-6 text-primary-500" />
+      <h2 className="font-heading text-2xl font-bold bg-gradient-to-r from-violet-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2">
+        <SettingsIcon className="w-6 h-6 text-velaris-400" />
         Settings
       </h2>
 
       <div className="space-y-4">
         {/* Profile Icon & Picture */}
-        <div className="bg-gradient-to-r from-fantasy-peach/20 to-fantasy-lavender/20 rounded-2xl p-6 border-2 border-fantasy-peach/30">
+        <div className="glass-card-dark rounded-2xl p-6 border-2 border-velaris-500/30">
           <div className="flex items-center gap-3 mb-4">
-            <Smile className="w-6 h-6 text-fantasy-peach" />
+            <Smile className="w-6 h-6 text-velaris-400" />
             <div>
-              <h3 className="font-heading text-lg font-semibold text-fantasy-midnight dark:text-fantasy-cream">
+              <h3 className="font-heading text-lg font-semibold text-violet-200">
                 Profile Picture
               </h3>
-              <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">
+              <p className="font-body text-sm text-violet-300/70">
                 Choose an emoji or upload a photo
               </p>
             </div>
@@ -87,14 +84,14 @@ export const SettingsPanel: React.FC = () => {
                 <img 
                   src={gameState.userProgress.profileIcon} 
                   alt="Profile" 
-                  className="w-24 h-24 rounded-full object-cover border-4 border-primary-500/30"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-velaris-500/30 glow-purple"
                 />
               ) : (
                 <div className="text-8xl">{gameState.userProgress.profileIcon}</div>
               )
             ) : (
-              <div className="w-24 h-24 rounded-full bg-fantasy-lavender/20 flex items-center justify-center">
-                <User className="w-12 h-12 text-fantasy-midnight/40" />
+              <div className="w-24 h-24 rounded-full bg-velaris-500/20 flex items-center justify-center border-2 border-velaris-400/30">
+                <User className="w-12 h-12 text-velaris-300/40" />
               </div>
             )}
           </div>
@@ -105,7 +102,7 @@ export const SettingsPanel: React.FC = () => {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-heading font-semibold transition-colors flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 bg-velaris-500 hover:bg-velaris-600 text-white rounded-lg font-heading font-semibold transition-colors flex items-center justify-center gap-2 glow-purple"
               >
                 <Upload className="w-5 h-5" />
                 {uploading ? 'Uploading...' : 'Upload Photo'}
@@ -121,7 +118,7 @@ export const SettingsPanel: React.FC = () => {
           </div>
           
           {/* Emoji Icons */}
-          <p className="font-body text-xs font-bold text-fantasy-midnight/60 dark:text-fantasy-cream/60 mb-2">
+          <p className="font-body text-xs font-bold text-violet-300/70 mb-2">
             Or choose an emoji:
           </p>
           <div className="grid grid-cols-6 gap-3 mb-4">
@@ -133,8 +130,8 @@ export const SettingsPanel: React.FC = () => {
                 onClick={() => setProfileIcon(icon)}
                 className={`text-4xl p-3 rounded-xl border-2 transition-all ${
                   gameState.userProgress.profileIcon === icon
-                    ? 'bg-primary-500/20 border-primary-500 shadow-lg'
-                    : 'bg-white/30 dark:bg-fantasy-midnight/30 border-fantasy-lavender/30 hover:border-primary-400'
+                    ? 'bg-velaris-500/20 border-velaris-500 glow-purple'
+                    : 'glass-card border-velaris-400/20 hover:border-velaris-400/40'
                 }`}
               >
                 {icon}
@@ -147,22 +144,22 @@ export const SettingsPanel: React.FC = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setProfileIcon(undefined)}
-            className="w-full px-4 py-2 bg-fantasy-midnight/10 dark:bg-fantasy-cream/10 rounded-lg font-body text-sm hover:bg-fantasy-midnight/20 dark:hover:bg-fantasy-cream/20 transition-colors"
+            className="w-full px-4 py-2 glass-card rounded-lg font-body text-sm hover:bg-velaris-500/20 transition-colors text-violet-200"
           >
             Clear Profile Picture
           </motion.button>
         </div>
 
         {/* Dark Mode Toggle */}
-        <div className="bg-gradient-to-r from-fantasy-lavender/20 to-fantasy-midnight/20 rounded-2xl p-6 border-2 border-fantasy-lavender/30">
+        <div className="glass-card-dark rounded-2xl p-6 border-2 border-velaris-500/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {darkMode ? <Moon className="w-6 h-6 text-fantasy-lavender" /> : <Sun className="w-6 h-6 text-fantasy-gold" />}
+              {darkMode ? <Moon className="w-6 h-6 text-velaris-400" /> : <Sun className="w-6 h-6 text-yellow-400" />}
               <div>
-                <h3 className="font-heading text-lg font-semibold text-fantasy-midnight dark:text-fantasy-cream">
+                <h3 className="font-heading text-lg font-semibold text-violet-200">
                   Dark Mode
                 </h3>
-                <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">
+                <p className="font-body text-sm text-violet-300/70">
                   Toggle between light and dark themes
                 </p>
               </div>
@@ -172,7 +169,7 @@ export const SettingsPanel: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={toggleDarkMode}
               className={`relative w-16 h-8 rounded-full transition-colors ${
-                darkMode ? 'bg-primary-500' : 'bg-fantasy-midnight/20'
+                darkMode ? 'bg-velaris-500' : 'bg-velaris-500/30'
               }`}
             >
               <motion.div
@@ -185,15 +182,15 @@ export const SettingsPanel: React.FC = () => {
         </div>
 
         {/* Sound Toggle */}
-        <div className="bg-gradient-to-r from-fantasy-sage/20 to-fantasy-lavender/20 rounded-2xl p-6 border-2 border-fantasy-sage/30">
+        <div className="glass-card-dark rounded-2xl p-6 border-2 border-velaris-500/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {soundEnabled ? <Volume2 className="w-6 h-6 text-fantasy-sage" /> : <VolumeX className="w-6 h-6 text-fantasy-midnight/40" />}
+              {soundEnabled ? <Volume2 className="w-6 h-6 text-velaris-400" /> : <VolumeX className="w-6 h-6 text-velaris-300/40" />}
               <div>
-                <h3 className="font-heading text-lg font-semibold text-fantasy-midnight dark:text-fantasy-cream">
+                <h3 className="font-heading text-lg font-semibold text-violet-200">
                   Sound Effects
                 </h3>
-                <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">
+                <p className="font-body text-sm text-violet-300/70">
                   Enable or disable sound notifications
                 </p>
               </div>
@@ -203,7 +200,7 @@ export const SettingsPanel: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={toggleSound}
               className={`relative w-16 h-8 rounded-full transition-colors ${
-                soundEnabled ? 'bg-fantasy-sage' : 'bg-fantasy-midnight/20'
+                soundEnabled ? 'bg-velaris-500' : 'bg-velaris-500/30'
               }`}
             >
               <motion.div
@@ -216,36 +213,36 @@ export const SettingsPanel: React.FC = () => {
         </div>
 
         {/* Progress Stats */}
-        <div className="bg-gradient-to-r from-fantasy-gold/20 to-fantasy-peach/20 rounded-2xl p-6 border-2 border-fantasy-gold/30">
-          <h3 className="font-heading text-lg font-semibold text-fantasy-midnight dark:text-fantasy-cream mb-4">
+        <div className="glass-card-dark rounded-2xl p-6 border-2 border-velaris-500/30">
+          <h3 className="font-heading text-lg font-semibold text-violet-200 mb-4">
             Your Progress
           </h3>
           
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/30 dark:bg-fantasy-midnight/30 rounded-lg p-4">
-              <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">Total Tasks</p>
-              <p className="font-heading text-2xl font-bold text-fantasy-midnight dark:text-fantasy-cream">
+            <div className="glass-card rounded-lg p-4 border border-velaris-400/20">
+              <p className="font-body text-sm text-violet-300/70">Total Tasks</p>
+              <p className="font-heading text-2xl font-bold text-violet-200">
                 {gameState.tasks.length}
               </p>
             </div>
             
-            <div className="bg-white/30 dark:bg-fantasy-midnight/30 rounded-lg p-4">
-              <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">Completed</p>
-              <p className="font-heading text-2xl font-bold text-green-600 dark:text-green-400">
+            <div className="glass-card rounded-lg p-4 border border-velaris-400/20">
+              <p className="font-body text-sm text-violet-300/70">Completed</p>
+              <p className="font-heading text-2xl font-bold text-green-400">
                 {gameState.tasks.filter(t => t.completed).length}
               </p>
             </div>
             
-            <div className="bg-white/30 dark:bg-fantasy-midnight/30 rounded-lg p-4">
-              <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">Total XP</p>
-              <p className="font-heading text-2xl font-bold text-primary-600 dark:text-primary-400">
+            <div className="glass-card rounded-lg p-4 border border-velaris-400/20">
+              <p className="font-body text-sm text-violet-300/70">Total XP</p>
+              <p className="font-heading text-2xl font-bold text-velaris-300">
                 {gameState.userProgress.totalXP}
               </p>
             </div>
             
-            <div className="bg-white/30 dark:bg-fantasy-midnight/30 rounded-lg p-4">
-              <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">Best Streak</p>
-              <p className="font-heading text-2xl font-bold text-orange-600 dark:text-orange-400">
+            <div className="glass-card rounded-lg p-4 border border-velaris-400/20">
+              <p className="font-body text-sm text-violet-300/70">Best Streak</p>
+              <p className="font-heading text-2xl font-bold text-orange-400">
                 {gameState.userProgress.streak} 🔥
               </p>
             </div>
@@ -253,15 +250,15 @@ export const SettingsPanel: React.FC = () => {
         </div>
 
         {/* Reset Progress */}
-        <div className="bg-gradient-to-r from-red-500/10 to-red-600/10 rounded-2xl p-6 border-2 border-red-500/30">
+        <div className="glass-card-dark rounded-2xl p-6 border-2 border-red-500/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <RotateCcw className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <RotateCcw className="w-6 h-6 text-red-400" />
               <div>
-                <h3 className="font-heading text-lg font-semibold text-fantasy-midnight dark:text-fantasy-cream">
+                <h3 className="font-heading text-lg font-semibold text-violet-200">
                   Reset Progress
                 </h3>
-                <p className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">
+                <p className="font-body text-sm text-violet-300/70">
                   Clear all data and start fresh
                 </p>
               </div>
@@ -279,10 +276,10 @@ export const SettingsPanel: React.FC = () => {
         </div>
 
         {/* Info */}
-        <div className="bg-fantasy-lavender/10 rounded-lg p-4 border-2 border-fantasy-lavender/30">
-          <p className="font-body text-sm text-fantasy-midnight/70 dark:text-fantasy-cream/70 text-center">
-            Quest Productivity System v1.0 <br />
-            Made with 💜 for productive adventurers
+        <div className="glass-card-dark rounded-lg p-4 border-2 border-velaris-500/20">
+          <p className="font-body text-sm text-violet-300/70 text-center">
+            Night Court Quest System v1.0 <br />
+            To the stars who listen — and the dreams that are answered 🌙✨
           </p>
         </div>
       </div>

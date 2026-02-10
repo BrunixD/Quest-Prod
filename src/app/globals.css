@@ -1,76 +1,117 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply font-body bg-fantasy-cream dark:bg-fantasy-deep text-fantasy-midnight dark:text-fantasy-cream transition-colors duration-300;
-  }
-  
-  * {
-    @apply transition-colors duration-200;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Quicksand:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-cinzel: 'Cinzel', serif;
+  --font-quicksand: 'Quicksand', sans-serif;
 }
 
-@layer utilities {
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+body {
+  font-family: var(--font-quicksand);
 }
 
-/* Custom animations */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+/* Night Court starfield background */
+.bg-night-stars {
+  background-color: #1e1b4b;
+  background-image: 
+    radial-gradient(2px 2px at 20% 30%, white, transparent),
+    radial-gradient(2px 2px at 60% 70%, white, transparent),
+    radial-gradient(1px 1px at 50% 50%, white, transparent),
+    radial-gradient(1px 1px at 80% 10%, white, transparent),
+    radial-gradient(2px 2px at 90% 60%, white, transparent),
+    radial-gradient(1px 1px at 33% 50%, white, transparent),
+    radial-gradient(2px 2px at 79% 53%, white, transparent),
+    radial-gradient(1px 1px at 11% 29%, white, transparent),
+    radial-gradient(1px 1px at 41% 90%, white, transparent),
+    radial-gradient(2px 2px at 52% 13%, white, transparent);
+  background-size: 200% 200%;
+  animation: twinkle-stars 100s linear infinite;
 }
 
-@keyframes shimmer {
+@keyframes twinkle-stars {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+/* Glass morphism for Night Court aesthetic */
+.glass-card {
+  background: rgba(99, 102, 241, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.glass-card-dark {
+  background: rgba(30, 27, 75, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+/* Glow effects */
+.glow-purple {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+}
+
+.glow-violet {
+  box-shadow: 0 0 30px rgba(167, 139, 250, 0.6);
+}
+
+/* Text glow */
+.text-glow {
+  text-shadow: 0 0 10px rgba(196, 181, 253, 0.8);
+}
+
+/* Starfall animation */
+@keyframes starfall {
   0% {
-    background-position: -200% 0;
+    transform: translateY(-100vh) translateX(0);
+    opacity: 1;
   }
   100% {
-    background-position: 200% 0;
+    transform: translateY(100vh) translateX(100px);
+    opacity: 0;
   }
 }
 
-@keyframes pulse-glow {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 20px rgba(224, 62, 235, 0.5);
-  }
-  50% {
-    opacity: 0.8;
-    box-shadow: 0 0 40px rgba(224, 62, 235, 0.8);
-  }
+.starfall {
+  animation: starfall 3s linear infinite;
 }
 
-@keyframes wiggle {
-  0%, 100% {
-    transform: rotate(-3deg);
-  }
-  50% {
-    transform: rotate(3deg);
-  }
+/* Dark mode adjustments */
+.dark {
+  color-scheme: dark;
 }
 
-@keyframes sparkle {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.8);
-  }
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(30, 27, 75, 0.3);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8b5cf6 0%, #6366f1 100%);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a78bfa 0%, #818cf8 100%);
+}
+
+/* Shimmer effect for special elements */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.1) 0%,
+    rgba(196, 181, 253, 0.3) 50%,
+    rgba(139, 92, 246, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
 }

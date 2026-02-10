@@ -202,7 +202,7 @@ export const db = {
     return data;
   },
 
-  async updateDailyProgress(userId: string, date: Date, completedTasks: number, xpEarned: number) {
+  async updateDailyProgress(userId: string, date: Date, completedTasks: number, xpEarned: number, extraTasksCompleted?: string[]) {
     const dateStr = format(date, 'yyyy-MM-dd');
     const { data, error } = await supabase
       .from('daily_progress')
@@ -211,6 +211,7 @@ export const db = {
         date: dateStr,
         completed_tasks: completedTasks,
         xp_earned: xpEarned,
+        extra_tasks_completed: extraTasksCompleted || [],
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id,date'

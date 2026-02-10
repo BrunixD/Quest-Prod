@@ -46,6 +46,7 @@ export interface DailyProgress {
   slotAssignments?: Record<string, string>;
   slotsCompleted?: string[];
   slotsSkipped?: string[];
+  extraTasksCompleted?: string[];
 }
 
 export interface WeeklyRotation {

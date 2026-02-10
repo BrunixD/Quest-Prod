@@ -1,246 +1,194 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
-import { Task } from '@/types';
-import { format } from 'date-fns';
-import { X, Edit2, Trash2, Check, Calendar } from 'lucide-react';
+import { X } from 'lucide-react';
+import { TaskCategory } from '@/types';
+import { Portal } from './Portal';
 
 interface TaskModalProps {
-  task: Task;
-  date: Date;
   onClose: () => void;
 }
 
-export const TaskModal: React.FC<TaskModalProps> = ({ task, date, onClose }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedTask, setEditedTask] = useState(task);
-  const { gameState, deleteTask } = useGame();
+export const TaskModal: React.FC<TaskModalProps> = ({ onClose }) => {
+  const { addCustomTask } = useGame();
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState<TaskCategory>('Creative / Art');
+  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
+  const [xpValue, setXpValue] = useState(15);
+  const [notes, setNotes] = useState('');
 
-  const modalRef = useRef<HTMLDivElement>(null);
+  const categories = [
+    'Creative / Art',
+    'Craft / Sewing',
+    'Writing / Learning',
+    'Content / Online',
+    'Gaming / Fun',
+    'Life Skills',
+  ];
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
-
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this task? This will remove it from all schedules.')) {
-      deleteTask(task.id);
-      onClose();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!title.trim()) {
+      alert('Please enter a task title');
+      return;
     }
-  };
 
-  const handleSave = () => {
-    // Save logic would go here
-    setIsEditing(false);
+    await addCustomTask({
+      title: title.trim(),
+      category,
+      difficulty,
+      xpValue,
+      notes: notes.trim(),
+    });
+
+    onClose();
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <Portal>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
         <motion.div
-          ref={modalRef}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="bg-gradient-to-br from-white to-fantasy-cream dark:from-fantasy-midnight dark:to-fantasy-deep rounded-3xl p-6 max-w-lg w-full border-4 border-fantasy-lavender/30 shadow-2xl"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
+          className="glass-card-dark rounded-2xl p-6 border-2 border-velaris-500/30 max-w-md w-full glow-purple"
         >
-          {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-5 h-5 text-primary-500" />
-                <span className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">
-                  {format(date, 'EEEE, MMMM d, yyyy')}
-                </span>
-              </div>
-              
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={editedTask.title}
-                  onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
-                  className="w-full font-heading text-2xl font-bold text-fantasy-midnight dark:text-fantasy-cream bg-transparent border-b-2 border-primary-500 focus:outline-none"
-                />
-              ) : (
-                <h2 className="font-heading text-2xl font-bold text-fantasy-midnight dark:text-fantasy-cream">
-                  {task.title}
-                </h2>
-              )}
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-heading text-2xl font-bold bg-gradient-to-r from-violet-300 to-purple-300 bg-clip-text text-transparent">
+              Create New Task
+            </h2>
+            <button
               onClick={onClose}
-              className="p-2 hover:bg-fantasy-midnight/10 dark:hover:bg-fantasy-cream/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-velaris-500/20 rounded-lg transition-colors"
             >
-              <X className="w-5 h-5" />
-            </motion.button>
+              <X className="w-5 h-5 text-violet-200" />
+            </button>
           </div>
 
-          {/* Content */}
-          <div className="space-y-4 mb-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Title */}
+            <div>
+              <label className="block font-body text-sm font-semibold text-violet-200 mb-2">
+                Task Title *
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-4 py-2 glass-card rounded-lg border-2 border-velaris-400/30 bg-night-900/50 text-violet-100 font-body focus:border-velaris-400 focus:outline-none"
+                placeholder="e.g., Paint watercolor landscape"
+                required
+              />
+            </div>
+
             {/* Category */}
             <div>
-              <label className="font-body text-sm font-semibold text-fantasy-midnight/60 dark:text-fantasy-cream/60 block mb-2">
+              <label className="block font-body text-sm font-semibold text-violet-200 mb-2">
                 Category
               </label>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">
-                  {task.category === 'Creative / Art' && '🎨'}
-                  {task.category === 'Craft / Sewing' && '🧵'}
-                  {task.category === 'Writing / Learning' && '📚'}
-                  {task.category === 'Content / Online' && '💻'}
-                  {task.category === 'Gaming / Fun' && '🎮'}
-                  {task.category === 'Life Skills' && '🍳'}
-                </span>
-                <span className="font-body text-fantasy-midnight dark:text-fantasy-cream">
-                  {task.category}
-                </span>
-              </div>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as TaskCategory)}
+                className="w-full px-4 py-2 glass-card rounded-lg border-2 border-velaris-400/30 bg-night-900/50 text-violet-100 font-body focus:border-velaris-400 focus:outline-none"
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat} className="bg-night-900 text-violet-100">
+                    {cat}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Difficulty & XP */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="font-body text-sm font-semibold text-fantasy-midnight/60 dark:text-fantasy-cream/60 block mb-2">
-                  Difficulty
-                </label>
-                <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
-                  task.difficulty === 'Hard' ? 'bg-red-500/20 text-red-700 dark:text-red-300' :
-                  task.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300' :
-                  'bg-green-500/20 text-green-700 dark:text-green-300'
-                }`}>
-                  {task.difficulty}
-                </span>
-              </div>
-
-              <div>
-                <label className="font-body text-sm font-semibold text-fantasy-midnight/60 dark:text-fantasy-cream/60 block mb-2">
-                  XP Value
-                </label>
-                <span className="inline-block px-3 py-1 rounded-full text-sm font-bold bg-primary-500/20 text-primary-700 dark:text-primary-300">
-                  +{task.xpValue} XP
-                </span>
-              </div>
-            </div>
-
-            {/* Status */}
+            {/* Difficulty */}
             <div>
-              <label className="font-body text-sm font-semibold text-fantasy-midnight/60 dark:text-fantasy-cream/60 block mb-2">
-                Status
+              <label className="block font-body text-sm font-semibold text-violet-200 mb-2">
+                Difficulty
               </label>
-              <div className="flex items-center gap-2">
-                {task.completed ? (
-                  <>
-                    <Check className="w-5 h-5 text-green-600" />
-                    <span className="font-body text-green-600 dark:text-green-400 font-semibold">
-                      Completed
-                    </span>
-                    {task.completedAt && (() => {
-                        try {
-                            return (
-                            <span className="font-body text-sm text-fantasy-midnight/60 dark:text-fantasy-cream/60">
-                                on {format(new Date(task.completedAt), 'MMM d, yyyy')}
-                            </span>
-                            );
-                        } catch {
-                            return null;
-                        }
-                    })()}
-                  </>
-                ) : (
-                  <>
-                    <span className="w-5 h-5 rounded-full border-2 border-fantasy-midnight/30 dark:border-fantasy-cream/30" />
-                    <span className="font-body text-fantasy-midnight/60 dark:text-fantasy-cream/60">
-                      Not completed
-                    </span>
-                  </>
-                )}
+              <div className="grid grid-cols-3 gap-2">
+                {(['Easy', 'Medium', 'Hard'] as const).map(diff => (
+                  <button
+                    key={diff}
+                    type="button"
+                    onClick={() => {
+                      setDifficulty(diff);
+                      setXpValue(diff === 'Easy' ? 15 : diff === 'Medium' ? 20 : 25);
+                    }}
+                    className={`px-4 py-2 rounded-lg font-heading font-semibold text-sm transition-all ${
+                      difficulty === diff
+                        ? diff === 'Hard' ? 'bg-red-500/30 text-red-200 border-2 border-red-400' :
+                          diff === 'Medium' ? 'bg-yellow-500/30 text-yellow-200 border-2 border-yellow-400' :
+                          'bg-green-500/30 text-green-200 border-2 border-green-400'
+                        : 'glass-card border-2 border-velaris-400/20 text-violet-300/60'
+                    }`}
+                  >
+                    {diff}
+                  </button>
+                ))}
               </div>
+            </div>
+
+            {/* XP Value */}
+            <div>
+              <label className="block font-body text-sm font-semibold text-violet-200 mb-2">
+                XP Value
+              </label>
+              <input
+                type="number"
+                value={xpValue}
+                onChange={(e) => setXpValue(parseInt(e.target.value) || 0)}
+                className="w-full px-4 py-2 glass-card rounded-lg border-2 border-velaris-400/30 bg-night-900/50 text-violet-100 font-body focus:border-velaris-400 focus:outline-none"
+                min="1"
+                max="100"
+              />
             </div>
 
             {/* Notes */}
-            {task.notes && (
-              <div>
-                <label className="font-body text-sm font-semibold text-fantasy-midnight/60 dark:text-fantasy-cream/60 block mb-2">
-                  Notes
-                </label>
-                {isEditing ? (
-                  <textarea
-                    value={editedTask.notes || ''}
-                    onChange={(e) => setEditedTask({ ...editedTask, notes: e.target.value })}
-                    className="w-full p-3 rounded-lg border-2 border-fantasy-lavender/30 bg-white/50 dark:bg-fantasy-midnight/50 font-body resize-none"
-                    rows={3}
-                  />
-                ) : (
-                  <p className="font-body text-fantasy-midnight dark:text-fantasy-cream bg-fantasy-lavender/10 rounded-lg p-3">
-                    {task.notes}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+            <div>
+              <label className="block font-body text-sm font-semibold text-violet-200 mb-2">
+                Notes (Optional)
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full px-4 py-2 glass-card rounded-lg border-2 border-velaris-400/30 bg-night-900/50 text-violet-100 font-body focus:border-velaris-400 focus:outline-none resize-none"
+                rows={3}
+                placeholder="Any additional details..."
+              />
+            </div>
 
-          {/* Actions */}
-          <div className="flex gap-3">
-            {isEditing ? (
-              <>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleSave}
-                  className="flex-1 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-heading font-semibold transition-colors flex items-center justify-center gap-2"
-                >
-                  <Check className="w-5 h-5" />
-                  Save Changes
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditedTask(task);
-                  }}
-                  className="px-4 py-3 bg-fantasy-midnight/10 dark:bg-fantasy-cream/10 rounded-lg font-heading font-semibold transition-colors"
-                >
-                  Cancel
-                </motion.button>
-              </>
-            ) : (
-              <>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsEditing(true)}
-                  className="flex-1 px-4 py-3 bg-fantasy-sage hover:bg-fantasy-sage/80 text-white rounded-lg font-heading font-semibold transition-colors flex items-center justify-center gap-2"
-                >
-                  <Edit2 className="w-5 h-5" />
-                  Edit
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleDelete}
-                  className="px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-heading font-semibold transition-colors flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="w-5 h-5" />
-                  Delete
-                </motion.button>
-              </>
-            )}
-          </div>
+            {/* Buttons */}
+            <div className="flex gap-3 pt-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 glass-card rounded-lg font-heading font-semibold text-violet-200 hover:bg-velaris-500/20 transition-colors"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                className="flex-1 px-4 py-2 bg-velaris-500 hover:bg-velaris-600 text-white rounded-lg font-heading font-semibold transition-colors glow-purple"
+              >
+                Create Task
+              </motion.button>
+            </div>
+          </form>
         </motion.div>
-      </div>
-    </AnimatePresence>
+      </motion.div>
+    </Portal>
   );
 };

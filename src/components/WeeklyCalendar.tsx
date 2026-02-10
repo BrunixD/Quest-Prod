@@ -1,212 +1,177 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, X } from 'lucide-react';
-import { TaskModal } from './TaskModal';
-import { TaskAssignModal } from './TaskAssignModal';
+import { ChevronLeft, ChevronRight, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { format, startOfWeek, addDays, isSameDay, addWeeks, subWeeks } from 'date-fns';
+import { DayScheduleModal } from './DayScheduleModal';
 
 export const WeeklyCalendar: React.FC = () => {
-  const { gameState, getSlotAssignment, removeSlotAssignment } = useGame();
-  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  const { gameState } = useGame();
+  const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{ date: Date; slotId: string } | null>(null);
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+  const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const goToPreviousWeek = () => {
-    setCurrentWeekStart(addDays(currentWeekStart, -7));
-  };
-
-  const goToNextWeek = () => {
-    setCurrentWeekStart(addDays(currentWeekStart, 7));
-  };
-
-  const goToToday = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  };
-
-  const getTasksForDate = (date: Date) => {
+  const getDayProgress = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    const dayProgress = gameState.userProgress.weeklyProgress[dateStr];
-    
-    if (!dayProgress) return [];
-    
-    return dayProgress.tasksCompleted.map(taskId => 
-      gameState.tasks.find(t => t.id === taskId)
-    ).filter(Boolean);
+    return gameState.userProgress.weeklyProgress[dateStr];
   };
 
-  const handleSlotClick = (date: Date, slotId: string) => {
-    setSelectedSlot({ date, slotId });
-    setShowAssignModal(true);
+  const getCompletionRate = (date: Date) => {
+    const progress = getDayProgress(date);
+    if (!progress || progress.totalTasks === 0) return 0;
+    return (progress.completedTasks / progress.totalTasks) * 100;
   };
-
-  const handleRemoveAssignment = (date: Date, slotId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    removeSlotAssignment(date, slotId);
-  };
-
-  const task = selectedTask ? gameState.tasks.find(t => t.id === selectedTask) : null;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-2xl font-bold text-fantasy-midnight dark:text-fantasy-cream flex items-center gap-2">
-          <CalendarIcon className="w-6 h-6 text-primary-500" />
+        <h2 className="font-heading text-2xl font-bold bg-gradient-to-r from-violet-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2">
+          <Calendar className="w-6 h-6 text-velaris-400" />
           Weekly View
         </h2>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={goToPreviousWeek}
-            className="p-2 bg-white/50 dark:bg-fantasy-midnight/50 rounded-lg border-2 border-fantasy-lavender/30 hover:border-primary-400 transition-colors"
+            onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}
+            className="p-2 glass-card rounded-lg border-2 border-velaris-400/30 hover:border-velaris-400/50 transition-all"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5 text-violet-200" />
           </motion.button>
+
+          <span className="font-heading text-lg font-semibold text-violet-200 min-w-[200px] text-center">
+            {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d, yyyy')}
+          </span>
 
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={goToToday}
-            className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-heading font-semibold transition-colors"
+            onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}
+            className="p-2 glass-card rounded-lg border-2 border-velaris-400/30 hover:border-velaris-400/50 transition-all"
           >
-            Today
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={goToNextWeek}
-            className="p-2 bg-white/50 dark:bg-fantasy-midnight/50 rounded-lg border-2 border-fantasy-lavender/30 hover:border-primary-400 transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5 text-violet-200" />
           </motion.button>
         </div>
       </div>
 
-      {/* Week Grid */}
+      {/* Week Days */}
       <div className="grid grid-cols-7 gap-3">
         {weekDays.map((day, index) => {
+          const progress = getDayProgress(day);
+          const completionRate = getCompletionRate(day);
           const isToday = isSameDay(day, new Date());
-          const tasksForDay = getTasksForDate(day);
-          const dayProgress = gameState.userProgress.weeklyProgress[format(day, 'yyyy-MM-dd')];
+          const hasTasks = progress && progress.totalTasks > 0;
+          const slotsCompleted = progress?.slotsCompleted?.length || 0;
+          const slotsSkipped = progress?.slotsSkipped?.length || 0;
 
           return (
             <motion.div
-              key={index}
+              key={day.toISOString()}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className={`bg-gradient-to-br from-white/50 to-fantasy-cream/50 dark:from-fantasy-midnight/50 dark:to-fantasy-deep/50 rounded-2xl p-4 border-2 ${
+              whileHover={{ scale: 1.02 }}
+              onClick={() => setSelectedDate(day)}
+              className={`glass-card-dark rounded-xl p-4 border-2 cursor-pointer transition-all ${
                 isToday 
-                  ? 'border-primary-500 shadow-lg' 
-                  : 'border-fantasy-lavender/30'
-              } min-h-[300px]`}
+                  ? 'border-velaris-400 glow-purple' 
+                  : 'border-velaris-400/20 hover:border-velaris-400/40'
+              }`}
             >
               {/* Day Header */}
-              <div className="mb-3 pb-3 border-b-2 border-fantasy-lavender/20">
-                <p className="font-body text-xs text-fantasy-midnight/60 dark:text-fantasy-cream/60">
-                  {format(day, 'EEEE')}
+              <div className="text-center mb-3">
+                <p className="font-body text-xs text-violet-300/70 uppercase tracking-wide">
+                  {format(day, 'EEE')}
                 </p>
                 <p className={`font-heading text-2xl font-bold ${
-                  isToday 
-                    ? 'text-primary-600 dark:text-primary-400' 
-                    : 'text-fantasy-midnight dark:text-fantasy-cream'
+                  isToday ? 'text-velaris-300' : 'text-violet-200'
                 }`}>
                   {format(day, 'd')}
                 </p>
-                {dayProgress && (
-                  <p className="font-body text-xs text-fantasy-midnight/60 dark:text-fantasy-cream/60 mt-1">
-                    {dayProgress.completedTasks}/4 tasks • {dayProgress.xpEarned} XP
-                  </p>
-                )}
               </div>
 
-              {/* Time Slots */}
-              <div className="space-y-2">
-                {gameState.schedule.filter(s => s.type === 'task').map(slot => {
-                  const assignedTaskId = getSlotAssignment(day, slot.id);
-                  const assignedTask = assignedTaskId ? gameState.tasks.find(t => t.id === assignedTaskId) : null;
-                  
-                  return (
-                    <div key={slot.id} className="relative">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleSlotClick(day, slot.id)}
-                        className={`w-full text-left text-xs rounded-lg p-2 border transition-colors group ${
-                          assignedTask
-                            ? 'bg-fantasy-lavender/20 border-fantasy-lavender/40 hover:bg-fantasy-lavender/30'
-                            : 'bg-primary-500/10 hover:bg-primary-500/20 border-primary-500/30'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-body text-fantasy-midnight/50 dark:text-fantasy-cream/50">
-                              {slot.startTime} - {slot.endTime}
-                            </p>
-                            {assignedTask ? (
-                              <p className="font-heading text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream line-clamp-1">
-                                {assignedTask.title}
-                              </p>
-                            ) : (
-                              <p className="font-heading text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream">
-                                {slot.label}
-                              </p>
-                            )}
-                          </div>
-                          {assignedTask ? (
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={(e) => handleRemoveAssignment(day, slot.id, e)}
-                              className="p-1 hover:bg-red-500/20 rounded transition-colors"
-                            >
-                              <X className="w-4 h-4 text-red-500" />
-                            </motion.button>
-                          ) : (
-                            <Plus className="w-4 h-4 text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          )}
-                        </div>
-                      </motion.button>
+              {/* Progress Ring */}
+              {hasTasks ? (
+                <div className="relative w-16 h-16 mx-auto mb-3">
+                  <svg className="w-full h-full transform -rotate-90">
+                    {/* Background circle */}
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                      className="text-velaris-500/20"
+                    />
+                    {/* Progress circle */}
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                      strokeDasharray={`${2 * Math.PI * 28}`}
+                      strokeDashoffset={`${2 * Math.PI * 28 * (1 - completionRate / 100)}`}
+                      className={`transition-all duration-500 ${
+                        completionRate === 100 ? 'text-green-400' :
+                        completionRate >= 50 ? 'text-velaris-400' :
+                        'text-yellow-400'
+                      }`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="font-heading text-sm font-bold text-violet-200">
+                      {Math.round(completionRate)}%
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-velaris-500/10 flex items-center justify-center">
+                  <span className="text-2xl text-violet-300/40">—</span>
+                </div>
+              )}
+
+              {/* Stats */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-violet-300/70">Tasks</span>
+                  <span className="font-semibold text-violet-200">
+                    {progress?.completedTasks || 0}/{progress?.totalTasks || 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-violet-300/70">XP</span>
+                  <span className={`font-semibold ${
+                    (progress?.xpEarned || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {(progress?.xpEarned || 0) >= 0 ? '+' : ''}{progress?.xpEarned || 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* Icons */}
+              {hasTasks && (
+                <div className="flex gap-1 justify-center mt-3">
+                  {slotsCompleted > 0 && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
+                      <CheckCircle className="w-3 h-3 text-green-400" />
+                      <span className="text-xs font-bold text-green-400">{slotsCompleted}</span>
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Completed Tasks */}
-              {tasksForDay.length > 0 && (
-                <div className="mt-3 pt-3 border-t-2 border-fantasy-lavender/20 space-y-2">
-                  <p className="font-body text-xs font-semibold text-fantasy-midnight/60 dark:text-fantasy-cream/60">
-                    Completed:
-                  </p>
-                  {tasksForDay.map((task) => task && (
-                    <motion.button
-                      key={task.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setSelectedTask(task.id);
-                        setSelectedDate(day);
-                      }}
-                      className="w-full text-left p-2 bg-green-500/10 rounded-lg border border-green-500/30 hover:bg-green-500/20 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-green-600 dark:text-green-400">✓</span>
-                        <p className="font-body text-xs text-fantasy-midnight dark:text-fantasy-cream line-clamp-1">
-                          {task.title}
-                        </p>
-                      </div>
-                    </motion.button>
-                  ))}
+                  )}
+                  {slotsSkipped > 0 && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-red-500/20 rounded-full">
+                      <XCircle className="w-3 h-3 text-red-400" />
+                      <span className="text-xs font-bold text-red-400">{slotsSkipped}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -214,29 +179,37 @@ export const WeeklyCalendar: React.FC = () => {
         })}
       </div>
 
-      {/* Task Assign Modal */}
-      {showAssignModal && selectedSlot && (
-        <TaskAssignModal
-          date={selectedSlot.date}
-          slotId={selectedSlot.slotId}
-          onClose={() => {
-            setShowAssignModal(false);
-            setSelectedSlot(null);
-          }}
-        />
-      )}
+      {/* Legend */}
+      <div className="glass-card-dark rounded-xl p-4 border-2 border-velaris-400/20">
+        <div className="flex items-center justify-center gap-6 flex-wrap text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-green-400"></div>
+            <span className="text-violet-300/70">Completed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-velaris-400"></div>
+            <span className="text-violet-300/70">In Progress</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+            <span className="text-violet-300/70">Started</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-400"></div>
+            <span className="text-violet-300/70">Skipped</span>
+          </div>
+        </div>
+      </div>
 
-      {/* Task Modal */}
-      {task && selectedDate && (
-        <TaskModal
-          task={task}
-          date={selectedDate}
-          onClose={() => {
-            setSelectedTask(null);
-            setSelectedDate(null);
-          }}
-        />
-      )}
+      {/* Day Schedule Modal */}
+      <AnimatePresence>
+        {selectedDate && (
+          <DayScheduleModal
+            date={selectedDate}
+            onClose={() => setSelectedDate(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

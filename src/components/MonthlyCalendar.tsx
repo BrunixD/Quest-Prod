@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { 
   format, 
   startOfMonth, 
@@ -11,232 +12,230 @@ import {
   endOfWeek,
   addDays,
   addMonths,
+  subMonths,
   isSameMonth,
   isSameDay,
   isToday
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import { TaskModal } from './TaskModal';
 import { DayScheduleModal } from './DayScheduleModal';
-import { TaskAssignModal } from './TaskAssignModal';
 
 export const MonthlyCalendar: React.FC = () => {
-  const { gameState, getSlotAssignment } = useGame();
+  const { gameState } = useGame();
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showDaySchedule, setShowDaySchedule] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{ date: Date; slotId: string } | null>(null);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
-  const days: Date[] = [];
-  let day = startDate;
-  while (day <= endDate) {
-    days.push(day);
+  const calendarDays: Date[] = [];
+  let day = calendarStart;
+  while (day <= calendarEnd) {
+    calendarDays.push(day);
     day = addDays(day, 1);
   }
 
-  const goToPreviousMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, -1));
-  };
-
-  const goToNextMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, 1));
-  };
-
-  const goToToday = () => {
-    setCurrentMonth(new Date());
-  };
-
-  const getTasksForDate = (date: Date) => {
+  const getDayProgress = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    const dayProgress = gameState.userProgress.weeklyProgress[dateStr];
-    
-    if (!dayProgress) return [];
-    
-    return dayProgress.tasksCompleted.map(taskId => 
-      gameState.tasks.find(t => t.id === taskId)
-    ).filter(Boolean);
+    return gameState.userProgress.weeklyProgress[dateStr];
   };
 
-  const getAssignedTasksForDate = (date: Date) => {
-    const taskSlots = gameState.schedule.filter(s => s.type === 'task');
-    return taskSlots.map(slot => {
-      const taskId = getSlotAssignment(date, slot.id);
-      return taskId ? gameState.tasks.find(t => t.id === taskId) : null;
-    }).filter(Boolean);
+  const getCompletionRate = (date: Date) => {
+    const progress = getDayProgress(date);
+    if (!progress || progress.totalTasks === 0) return 0;
+    return (progress.completedTasks / progress.totalTasks) * 100;
   };
 
-  const handleDayClick = (date: Date, e: React.MouseEvent) => {
-    // Check if clicking on a task dot
-    if ((e.target as HTMLElement).closest('.task-dot')) {
-      return; // Don't open day schedule if clicking on task
-    }
-    setSelectedDate(date);
-    setShowDaySchedule(true);
-  };
-
-  const task = selectedTask ? gameState.tasks.find(t => t.id === selectedTask) : null;
+  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-2xl font-bold text-fantasy-midnight dark:text-fantasy-cream flex items-center gap-2">
-          <CalendarIcon className="w-6 h-6 text-primary-500" />
-          {format(currentMonth, 'MMMM yyyy')}
+        <h2 className="font-heading text-2xl font-bold bg-gradient-to-r from-violet-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2">
+          <Calendar className="w-6 h-6 text-velaris-400" />
+          Monthly View
         </h2>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={goToPreviousMonth}
-            className="p-2 bg-white/50 dark:bg-fantasy-midnight/50 rounded-lg border-2 border-fantasy-lavender/30 hover:border-primary-400 transition-colors"
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+            className="p-2 glass-card rounded-lg border-2 border-velaris-400/30 hover:border-velaris-400/50 transition-all"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5 text-violet-200" />
           </motion.button>
+
+          <span className="font-heading text-lg font-semibold text-violet-200 min-w-[200px] text-center">
+            {format(currentMonth, 'MMMM yyyy')}
+          </span>
 
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={goToToday}
-            className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-heading font-semibold transition-colors"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+            className="p-2 glass-card rounded-lg border-2 border-velaris-400/30 hover:border-velaris-400/50 transition-all"
           >
-            Today
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={goToNextMonth}
-            className="p-2 bg-white/50 dark:bg-fantasy-midnight/50 rounded-lg border-2 border-fantasy-lavender/30 hover:border-primary-400 transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5 text-violet-200" />
           </motion.button>
         </div>
       </div>
 
-      {/* Day Headers */}
-      <div className="grid grid-cols-7 gap-2">
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-          <div key={day} className="text-center font-heading text-sm font-semibold text-fantasy-midnight/60 dark:text-fantasy-cream/60 py-2">
-            {day}
-          </div>
-        ))}
+      {/* Calendar Grid */}
+      <div className="glass-card-dark rounded-2xl p-4 border-2 border-velaris-500/30">
+        {/* Week Day Headers */}
+        <div className="grid grid-cols-7 gap-2 mb-2">
+          {weekDays.map(day => (
+            <div key={day} className="text-center py-2">
+              <span className="font-heading text-sm font-semibold text-violet-300/70">
+                {day}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar Days */}
+        <div className="grid grid-cols-7 gap-2">
+          {calendarDays.map((day, index) => {
+            const progress = getDayProgress(day);
+            const completionRate = getCompletionRate(day);
+            const isCurrentMonth = isSameMonth(day, currentMonth);
+            const isDayToday = isToday(day);
+            const hasTasks = progress && progress.totalTasks > 0;
+
+            return (
+              <motion.div
+                key={day.toISOString()}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.01 }}
+                whileHover={isCurrentMonth ? { scale: 1.05 } : {}}
+                onClick={() => isCurrentMonth && setSelectedDate(day)}
+                className={`aspect-square p-2 rounded-lg border-2 transition-all ${
+                  !isCurrentMonth 
+                    ? 'bg-transparent border-transparent opacity-30 cursor-default' 
+                    : isDayToday
+                      ? 'glass-card border-velaris-400 glow-purple cursor-pointer'
+                      : 'glass-card border-velaris-400/20 hover:border-velaris-400/40 cursor-pointer'
+                }`}
+              >
+                <div className="flex flex-col h-full">
+                  {/* Day Number */}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`font-heading text-sm font-semibold ${
+                      isDayToday 
+                        ? 'text-velaris-300' 
+                        : isCurrentMonth 
+                          ? 'text-violet-200' 
+                          : 'text-violet-400/40'
+                    }`}>
+                      {format(day, 'd')}
+                    </span>
+                    {hasTasks && (
+                      <div className={`w-2 h-2 rounded-full ${
+                        completionRate === 100 ? 'bg-green-400' :
+                        completionRate >= 50 ? 'bg-velaris-400' :
+                        completionRate > 0 ? 'bg-yellow-400' :
+                        'bg-red-400'
+                      }`} />
+                    )}
+                  </div>
+
+                  {/* Mini Progress Bar */}
+                  {hasTasks && isCurrentMonth && (
+                    <div className="mt-auto">
+                      <div className="h-1 bg-velaris-500/20 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-300 ${
+                            completionRate === 100 ? 'bg-green-400' :
+                            completionRate >= 50 ? 'bg-velaris-400' :
+                            'bg-yellow-400'
+                          }`}
+                          style={{ width: `${completionRate}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-center text-violet-300/70 mt-1">
+                        {progress.completedTasks}/{progress.totalTasks}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-2">
-        {days.map((day, index) => {
-          const isCurrentMonth = isSameMonth(day, currentMonth);
-          const isTodayDate = isToday(day);
-          const completedTasks = getTasksForDate(day);
-          const assignedTasks = getAssignedTasksForDate(day);
-          const dayProgress = gameState.userProgress.weeklyProgress[format(day, 'yyyy-MM-dd')];
-          const allTasks = [...completedTasks, ...assignedTasks];
+      {/* Monthly Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {(() => {
+          const monthProgress = Object.values(gameState.userProgress.weeklyProgress).filter(
+            p => {
+              const date = new Date(p.date);
+              return isSameMonth(date, currentMonth);
+            }
+          );
+
+          const totalDays = monthProgress.length;
+          const totalCompleted = monthProgress.reduce((sum, p) => sum + p.completedTasks, 0);
+          const totalTasks = monthProgress.reduce((sum, p) => sum + p.totalTasks, 0);
+          const totalXP = monthProgress.reduce((sum, p) => sum + p.xpEarned, 0);
+          const perfectDays = monthProgress.filter(p => p.completedTasks === p.totalTasks && p.totalTasks > 0).length;
 
           return (
-            <motion.button
-              key={index}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.01 }}
-              onClick={(e) => handleDayClick(day, e)}
-              className={`relative aspect-square p-2 rounded-xl border-2 transition-all ${
-                isTodayDate
-                  ? 'bg-primary-500/20 border-primary-500 shadow-lg'
-                  : isCurrentMonth
-                  ? 'bg-white/50 dark:bg-fantasy-midnight/50 border-fantasy-lavender/30 hover:border-primary-400'
-                  : 'bg-fantasy-midnight/5 dark:bg-fantasy-deep/30 border-fantasy-midnight/10 dark:border-fantasy-cream/10 opacity-50'
-              }`}
-            >
-              {/* Date Number */}
-              <div className={`font-heading text-lg font-bold ${
-                isTodayDate
-                  ? 'text-primary-600 dark:text-primary-400'
-                  : isCurrentMonth
-                  ? 'text-fantasy-midnight dark:text-fantasy-cream'
-                  : 'text-fantasy-midnight/30 dark:text-fantasy-cream/30'
-              }`}>
-                {format(day, 'd')}
+            <>
+              <div className="glass-card-dark rounded-xl p-4 border-2 border-velaris-400/20">
+                <p className="font-body text-xs text-violet-300/70 uppercase tracking-wide mb-1">
+                  Active Days
+                </p>
+                <p className="font-heading text-2xl font-bold text-violet-200">
+                  {totalDays}
+                </p>
               </div>
 
-              {/* Task Dots - Clickable */}
-              {allTasks.length > 0 && (
-                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-                  {allTasks.slice(0, 4).map((task, i) => task && (
-                    <motion.button
-                      key={i}
-                      whileHover={{ scale: 1.5 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTask(task.id);
-                        setSelectedDate(day);
-                      }}
-                      className={`task-dot w-1.5 h-1.5 rounded-full ${
-                        completedTasks.includes(task) ? 'bg-green-500' : 'bg-blue-500'
-                      }`}
-                      title={task.title}
-                    />
-                  ))}
-                </div>
-              )}
+              <div className="glass-card-dark rounded-xl p-4 border-2 border-velaris-400/20">
+                <p className="font-body text-xs text-violet-300/70 uppercase tracking-wide mb-1">
+                  Tasks Done
+                </p>
+                <p className="font-heading text-2xl font-bold text-green-400">
+                  {totalCompleted}/{totalTasks}
+                </p>
+              </div>
 
-              {/* XP Badge */}
-              {dayProgress && dayProgress.xpEarned > 0 && (
-                <div className="absolute top-1 right-1 bg-fantasy-gold/80 text-fantasy-midnight text-xs font-bold rounded-full px-1.5 py-0.5">
-                  {dayProgress.xpEarned}
-                </div>
-              )}
-            </motion.button>
+              <div className="glass-card-dark rounded-xl p-4 border-2 border-velaris-400/20">
+                <p className="font-body text-xs text-violet-300/70 uppercase tracking-wide mb-1">
+                  Total XP
+                </p>
+                <p className={`font-heading text-2xl font-bold ${
+                  totalXP >= 0 ? 'text-velaris-300' : 'text-red-400'
+                }`}>
+                  {totalXP >= 0 ? '+' : ''}{totalXP}
+                </p>
+              </div>
+
+              <div className="glass-card-dark rounded-xl p-4 border-2 border-velaris-400/20">
+                <p className="font-body text-xs text-violet-300/70 uppercase tracking-wide mb-1">
+                  Perfect Days
+                </p>
+                <p className="font-heading text-2xl font-bold text-yellow-400">
+                  {perfectDays}
+                </p>
+              </div>
+            </>
           );
-        })}
+        })()}
       </div>
 
-      {/* Task Assign Modal */}
-      {showAssignModal && selectedSlot && (
-        <TaskAssignModal
-          date={selectedSlot.date}
-          slotId={selectedSlot.slotId}
-          onClose={() => {
-            setShowAssignModal(false);
-            setSelectedSlot(null);
-          }}
-        />
-      )}
-
-      {/* Task Modal */}
-      {task && selectedDate && !showDaySchedule && (
-        <TaskModal
-          task={task}
-          date={selectedDate}
-          onClose={() => {
-            setSelectedTask(null);
-            setSelectedDate(null);
-          }}
-        />
-      )}
-
       {/* Day Schedule Modal */}
-      {showDaySchedule && selectedDate && (
-        <DayScheduleModal
-          date={selectedDate}
-          onClose={() => {
-            setShowDaySchedule(false);
-            setSelectedDate(null);
-          }}
-          onTaskClick={(taskId) => {
-            setShowDaySchedule(false);
-            setSelectedTask(taskId);
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {selectedDate && (
+          <DayScheduleModal
+            date={selectedDate}
+            onClose={() => setSelectedDate(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

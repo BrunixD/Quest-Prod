@@ -3,42 +3,28 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
-import { Calendar, Plus, X, Trash2 } from 'lucide-react';
+import { Calendar, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { TaskModal } from './TaskModal';
 
 export const WeeklyRotation: React.FC = () => {
-  const { gameState, addCustomTask, deleteTask } = useGame();
-  const [showAddTask, setShowAddTask] = useState(false);
-  const [newTask, setNewTask] = useState({
-    title: '',
-    category: 'Creative / Art' as any,
-    difficulty: 'Medium' as any,
-    notes: '',
-  });
+  const { gameState, deleteTask } = useGame();
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
-  const categories = [
-    'Creative / Art',
-    'Craft / Sewing',
-    'Writing / Learning',
-    'Content / Online',
-    'Gaming / Fun',
-    'Life Skills',
-  ];
-
-  const handleAddTask = () => {
-    if (newTask.title.trim()) {
-      const xpValue = newTask.difficulty === 'Hard' ? 20 : newTask.difficulty === 'Medium' ? 20 : 15;
-      addCustomTask({
-        ...newTask,
-        xpValue,
-      });
-      setNewTask({
-        title: '',
-        category: 'Creative / Art',
-        difficulty: 'Medium',
-        notes: '',
-      });
-      setShowAddTask(false);
+  const groupedTasks = gameState.tasks.reduce((acc, task) => {
+    if (!acc[task.category]) {
+      acc[task.category] = [];
     }
+    acc[task.category].push(task);
+    return acc;
+  }, {} as Record<string, typeof gameState.tasks>);
+
+  const categoryIcons: Record<string, string> = {
+    'Creative / Art': '🎨',
+    'Craft / Sewing': '🧵',
+    'Writing / Learning': '📚',
+    'Content / Online': '💻',
+    'Gaming / Fun': '🎮',
+    'Life Skills': '🍳',
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -47,211 +33,116 @@ export const WeeklyRotation: React.FC = () => {
     }
   };
 
-  const getCategoryIcon = (category: string) => {
-    const icons: Record<string, string> = {
-      'Creative / Art': '🎨',
-      'Craft / Sewing': '🧵',
-      'Writing / Learning': '📚',
-      'Content / Online': '💻',
-      'Gaming / Fun': '🎮',
-      'Life Skills': '🍳',
-    };
-    return icons[category] || '📋';
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-2xl font-bold text-fantasy-midnight dark:text-fantasy-cream flex items-center gap-2">
-          <Calendar className="w-6 h-6 text-primary-500" />
+        <h2 className="font-heading text-2xl font-bold bg-gradient-to-r from-violet-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2">
+          <Calendar className="w-6 h-6 text-velaris-400" />
           Task Database
         </h2>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setShowAddTask(!showAddTask)}
-          className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-heading font-semibold flex items-center gap-2 transition-colors"
+          onClick={() => setShowTaskModal(true)}
+          className="px-4 py-2 bg-velaris-500 hover:bg-velaris-600 text-white rounded-lg font-heading font-semibold flex items-center gap-2 transition-colors glow-purple"
         >
-          <Plus className="w-4 h-4" />
-          New Task
+          <Plus className="w-5 h-5" />
+          Add Task
         </motion.button>
       </div>
 
-      <div className="bg-fantasy-lavender/10 rounded-lg p-4 border-2 border-fantasy-lavender/30">
-        <p className="font-body text-sm text-fantasy-midnight/70 dark:text-fantasy-cream/70">
-          Manage all your tasks here. Create, edit, or delete tasks. Use the calendars to assign them to specific time slots.
-        </p>
-        <p className="font-body text-xs text-fantasy-midnight/50 dark:text-fantasy-cream/50 mt-1">
-          Total tasks: {gameState.tasks.length}
-        </p>
+      <div className="space-y-6">
+        {Object.entries(groupedTasks).map(([category, tasks]) => (
+          <div key={category} className="glass-card-dark rounded-2xl p-6 border-2 border-velaris-500/30">
+            <h3 className="font-heading text-xl font-bold text-violet-200 mb-4 flex items-center gap-2">
+              <span className="text-2xl">{categoryIcons[category] || '📋'}</span>
+              {category}
+              <span className="text-sm font-body text-violet-400/60 ml-2">
+                ({tasks.length} {tasks.length === 1 ? 'task' : 'tasks'})
+              </span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {tasks.map((task, index) => (
+                <motion.div
+                  key={task.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="glass-card rounded-lg p-4 border-2 border-velaris-400/20 hover:border-velaris-400/40 transition-all group"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h4 className="font-body font-semibold text-violet-100 mb-1">
+                        {task.title}
+                      </h4>
+                      {task.notes && (
+                        <p className="text-xs text-violet-300/60 line-clamp-2">
+                          {task.notes}
+                        </p>
+                      )}
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-400" />
+                    </motion.button>
+                  </div>
+
+                  <div className="flex gap-2 flex-wrap">
+                    <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                      task.difficulty === 'Hard' ? 'bg-red-500/30 text-red-200' :
+                      task.difficulty === 'Medium' ? 'bg-yellow-500/30 text-yellow-200' :
+                      'bg-green-500/30 text-green-200'
+                    }`}>
+                      {task.difficulty}
+                    </span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-velaris-500/30 text-velaris-200 font-bold">
+                      +{task.xpValue} XP
+                    </span>
+                    {task.completed && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-green-500/30 text-green-200 font-bold flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Done
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {Object.keys(groupedTasks).length === 0 && (
+          <div className="glass-card-dark rounded-2xl p-12 border-2 border-velaris-500/30 text-center">
+            <div className="text-6xl mb-4">📋</div>
+            <h3 className="font-heading text-xl font-bold text-violet-200 mb-2">
+              No tasks yet
+            </h3>
+            <p className="text-violet-300/60 mb-6">
+              Create your first task to get started on your quest!
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowTaskModal(true)}
+              className="px-6 py-3 bg-velaris-500 hover:bg-velaris-600 text-white rounded-lg font-heading font-semibold inline-flex items-center gap-2 transition-colors glow-purple"
+            >
+              <Plus className="w-5 h-5" />
+              Create First Task
+            </motion.button>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
-        {showAddTask && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-gradient-to-br from-fantasy-peach/20 to-fantasy-lavender/20 rounded-2xl p-6 border-2 border-fantasy-lavender/30"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-heading text-lg font-bold text-fantasy-midnight dark:text-fantasy-cream">
-                Create New Task
-              </h3>
-              <button
-                onClick={() => setShowAddTask(false)}
-                className="text-fantasy-midnight/60 hover:text-fantasy-midnight dark:text-fantasy-cream/60 dark:hover:text-fantasy-cream"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="font-body text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream block mb-2">
-                  Task Name
-                </label>
-                <input
-                  type="text"
-                  value={newTask.title}
-                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border-2 border-fantasy-lavender/30 bg-white/50 dark:bg-fantasy-midnight/50 font-body"
-                  placeholder="Enter task name..."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="font-body text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream block mb-2">
-                    Category
-                  </label>
-                  <select
-                    value={newTask.category}
-                    onChange={(e) => setNewTask({ ...newTask, category: e.target.value as any })}
-                    className="w-full px-4 py-2 rounded-lg border-2 border-fantasy-lavender/30 bg-white/50 dark:bg-fantasy-midnight/50 font-body"
-                  >
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-body text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream block mb-2">
-                    Difficulty
-                  </label>
-                  <select
-                    value={newTask.difficulty}
-                    onChange={(e) => setNewTask({ ...newTask, difficulty: e.target.value as any })}
-                    className="w-full px-4 py-2 rounded-lg border-2 border-fantasy-lavender/30 bg-white/50 dark:bg-fantasy-midnight/50 font-body"
-                  >
-                    <option value="Easy">Easy (+15 XP)</option>
-                    <option value="Medium">Medium (+20 XP)</option>
-                    <option value="Hard">Hard (+20 XP)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-body text-sm font-semibold text-fantasy-midnight dark:text-fantasy-cream block mb-2">
-                  Notes (Optional)
-                </label>
-                <textarea
-                  value={newTask.notes}
-                  onChange={(e) => setNewTask({ ...newTask, notes: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border-2 border-fantasy-lavender/30 bg-white/50 dark:bg-fantasy-midnight/50 font-body resize-none"
-                  rows={3}
-                  placeholder="Add any notes..."
-                />
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleAddTask}
-                className="w-full px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-heading font-semibold transition-colors"
-              >
-                Add Task
-              </motion.button>
-            </div>
-          </motion.div>
+        {showTaskModal && (
+          <TaskModal onClose={() => setShowTaskModal(false)} />
         )}
       </AnimatePresence>
-
-      <div className="space-y-3">
-        {categories.map(category => {
-          const categoryTasks = gameState.tasks.filter(t => t.category === category);
-          if (categoryTasks.length === 0) return null;
-
-          return (
-            <div key={category} className="space-y-2">
-              <h3 className="font-heading text-lg font-semibold text-fantasy-midnight dark:text-fantasy-cream flex items-center gap-2">
-                <span className="text-2xl">{getCategoryIcon(category)}</span>
-                {category}
-              </h3>
-              
-              <div className="grid gap-2">
-                {categoryTasks.map((task, index) => {
-                  const isCompleted = task.completed;
-
-                  return (
-                    <motion.div
-                      key={task.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        isCompleted
-                          ? 'bg-green-500/10 border-green-500/30 opacity-50'
-                          : 'bg-white/30 dark:bg-fantasy-midnight/30 border-fantasy-lavender/20'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-body font-semibold text-fantasy-midnight dark:text-fantasy-cream">
-                            {task.title}
-                          </h4>
-                          <div className="flex gap-2 mt-1">
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              task.difficulty === 'Hard' ? 'bg-red-500/20 text-red-700 dark:text-red-300' :
-                              task.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300' :
-                              'bg-green-500/20 text-green-700 dark:text-green-300'
-                            } font-bold`}>
-                              {task.difficulty}
-                            </span>
-                            <span className="text-xs px-2 py-1 rounded-full bg-primary-500/20 text-primary-700 dark:text-primary-300 font-bold">
-                              +{task.xpValue} XP
-                            </span>
-                          </div>
-                          {task.notes && (
-                            <p className="text-xs text-fantasy-midnight/60 dark:text-fantasy-cream/60 mt-1">
-                              {task.notes}
-                            </p>
-                          )}
-                          {isCompleted && task.completedAt && (
-                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                              ✓ Completed on {new Date(task.completedAt).toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                        
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 };

@@ -75,7 +75,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       try {
         console.log('📥 Loading all data for user:', user.id);
 
-        // Get or create profile
         let profile = await db.getProfile(user.id);
         console.log('👤 Profile:', profile);
         
@@ -84,7 +83,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           profile = await db.createProfile(user.id);
           console.log('✅ Profile created:', profile);
           
-          // Initialize default tasks
           console.log('📝 Creating default tasks...');
           for (const task of INITIAL_TASKS) {
             await db.createTask(user.id, {
@@ -98,7 +96,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           }
           console.log('✅ Tasks created');
 
-          // Initialize default rewards
           console.log('🎁 Creating default rewards...');
           for (const reward of DEFAULT_REWARDS) {
             await db.createReward(user.id, reward);
@@ -106,7 +103,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           console.log('✅ Rewards created');
         }
 
-        // Load tasks
         console.log('📝 Loading tasks...');
         const tasksData = await db.getTasks(user.id);
         console.log('Tasks data:', tasksData);
@@ -121,7 +117,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           completedAt: t.completed_at,
         }));
 
-        // Load rewards
         console.log('🎁 Loading rewards...');
         const rewardsData = await db.getRewards(user.id);
         console.log('Rewards data:', rewardsData);
@@ -135,7 +130,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           purchasedAt: r.purchased_at,
         }));
 
-        // Load today's slot assignments
         console.log('📅 Loading slot assignments...');
         const today = new Date();
         const slotAssignments = await db.getSlotAssignments(user.id, today);
@@ -170,6 +164,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           slotAssignments: slotAssignmentsMap,
           slotsCompleted,
           slotsSkipped,
+          extraTasksCompleted: todayProgress?.extra_tasks_completed || [],
         };
 
         console.log('🎯 Setting game state...');
@@ -217,11 +212,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
     console.log('👂 Setting up real-time subscriptions');
 
-    // Subscribe to profile changes
     const profileChannel = db.subscribeToProfile(user.id, async (payload) => {
       console.log('🔔 Profile update received:', payload);
       
-      // Reload the entire profile to ensure we have latest data
       const updatedProfile = await db.getProfile(user.id);
       console.log('🔄 Reloaded profile:', updatedProfile);
       
@@ -244,7 +237,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    // Subscribe to task changes
     const tasksChannel = db.subscribeToTasks(user.id, async () => {
       console.log('🔔 Tasks updated, reloading...');
       const tasksData = await db.getTasks(user.id);
@@ -261,11 +253,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       setGameState(prev => ({ ...prev, tasks }));
     });
 
-    // Subscribe to slot assignments
     const slotsChannel = db.subscribeToSlotAssignments(user.id, async (payload) => {
       console.log('🔔 Slot assignments updated:', payload);
       
-      // Reload all slot assignments for today to ensure consistency
       const today = new Date();
       const slotAssignments = await db.getSlotAssignments(user.id, today);
       const dateStr = format(today, 'yyyy-MM-dd');
@@ -300,6 +290,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 tasksCompleted: [],
                 tasksSkipped: [],
                 tasksPenalty: [],
+                extraTasksCompleted: [],
               }),
               slotAssignments: slotAssignmentsMap,
               slotsCompleted,
@@ -310,7 +301,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       }));
     });
 
-    // Subscribe to rewards
     const rewardsChannel = db.subscribeToRewards(user.id, async () => {
       console.log('🔔 Rewards updated, reloading...');
       const rewardsData = await db.getRewards(user.id);
@@ -337,17 +327,20 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   const getTodayProgress = (): DailyProgress => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    return gameState.userProgress.weeklyProgress[today] || {
+    const existing = gameState.userProgress.weeklyProgress[today];
+    
+    return {
       date: today,
-      completedTasks: 0,
+      completedTasks: existing?.completedTasks || 0,
       totalTasks: 5,
-      xpEarned: 0,
-      tasksCompleted: [],
-      tasksSkipped: [],
-      tasksPenalty: [],
-      slotAssignments: {},
-      slotsCompleted: [],
-      slotsSkipped: [],
+      xpEarned: existing?.xpEarned || 0,
+      tasksCompleted: existing?.tasksCompleted || [],
+      tasksSkipped: existing?.tasksSkipped || [],
+      tasksPenalty: existing?.tasksPenalty || [],
+      slotAssignments: existing?.slotAssignments || {},
+      slotsCompleted: existing?.slotsCompleted || [],
+      slotsSkipped: existing?.slotsSkipped || [],
+      extraTasksCompleted: existing?.extraTasksCompleted || [],
     };
   };
 
@@ -368,7 +361,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       const dateStr = format(date, 'yyyy-MM-dd');
       console.log('📌 Assigning task to slot:', { taskId, slotId, date: dateStr });
       
-      // Optimistic update
       setGameState(prev => ({
         ...prev,
         userProgress: {
@@ -386,6 +378,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 tasksPenalty: [],
                 slotsCompleted: [],
                 slotsSkipped: [],
+                extraTasksCompleted: [],
               }),
               slotAssignments: {
                 ...(prev.userProgress.weeklyProgress[dateStr]?.slotAssignments || {}),
@@ -396,12 +389,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         },
       }));
 
-      // Save to database
       await db.assignTaskToSlot(user.id, date, slotId, taskId);
       console.log('✅ Task assigned to database');
     } catch (error) {
       console.error('❌ Error assigning task:', error);
-      // Reload data on error
       const slotAssignments = await db.getSlotAssignments(user.id, date);
       const dateStr = format(date, 'yyyy-MM-dd');
       const slotAssignmentsMap: Record<string, string> = {};
@@ -430,7 +421,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       const dateStr = format(date, 'yyyy-MM-dd');
       console.log('🗑️ Removing slot assignment:', { slotId, date: dateStr });
       
-      // Optimistic update
       setGameState(prev => {
         const dayProgress = prev.userProgress.weeklyProgress[dateStr];
         if (!dayProgress?.slotAssignments) return prev;
@@ -453,12 +443,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         };
       });
 
-      // Save to database
       await db.removeSlotAssignment(user.id, date, slotId);
       console.log('✅ Slot assignment removed from database');
     } catch (error) {
       console.error('❌ Error removing slot:', error);
-      // Reload data on error
       const slotAssignments = await db.getSlotAssignments(user.id, date);
       const dateStr = format(date, 'yyyy-MM-dd');
       const slotAssignmentsMap: Record<string, string> = {};
@@ -504,7 +492,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         ? gameState.userProgress.streak + 1 
         : gameState.userProgress.streak;
 
-      // Optimistic update - update UI immediately
       setGameState(prev => ({
         ...prev,
         userProgress: {
@@ -524,7 +511,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         },
       }));
 
-      // Save to database in background
       await db.completeSlot(user.id, today, slotId);
       await db.updateDailyProgress(user.id, today, newCompletedCount, todayProgress.xpEarned + xpGained + bonusXP);
       await db.updateProfile(user.id, {
@@ -549,7 +535,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
       const newTotalXP = Math.max(0, gameState.userProgress.totalXP + XP_RULES.SKIP_TASK_PENALTY);
 
-      // Optimistic update - update UI immediately
       setGameState(prev => ({
         ...prev,
         userProgress: {
@@ -566,7 +551,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         },
       }));
 
-      // Save to database in background
       await db.skipSlot(user.id, today, slotId);
       await db.updateDailyProgress(
         user.id, 
@@ -622,8 +606,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
       const newTotalXP = gameState.userProgress.totalXP + xpGained;
       const newLevel = getCurrentLevel(newTotalXP);
+      const newExtraTasks = [...(todayProgress.extraTasksCompleted || []), taskId];
 
-      // Optimistic update
       const dateStr = format(today, 'yyyy-MM-dd');
       setGameState(prev => ({
         ...prev,
@@ -636,17 +620,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             [dateStr]: {
               ...todayProgress,
               xpEarned: todayProgress.xpEarned + xpGained,
+              extraTasksCompleted: newExtraTasks,
             },
           },
         },
       }));
 
-      // Save to database
+      // Save to database WITH extra tasks array
       await db.updateDailyProgress(
         user.id,
         today,
         todayProgress.completedTasks,
-        todayProgress.xpEarned + xpGained
+        todayProgress.xpEarned + xpGained,
+        newExtraTasks // ADD THIS PARAMETER
       );
 
       await db.updateProfile(user.id, {
@@ -664,30 +650,94 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const addCustomTask = async (task: Omit<Task, 'id' | 'completed'>) => {
     if (!user) return;
     try {
+      const taskId = `task-${Date.now()}`;
+      const newTask: Task = {
+        ...task,
+        id: taskId,
+        completed: false,
+      };
+
+      setGameState(prev => ({
+        ...prev,
+        tasks: [...prev.tasks, newTask],
+      }));
+
       await db.createTask(user.id, task);
       console.log('✅ Task created');
     } catch (error) {
       console.error('❌ Error creating task:', error);
+      const tasksData = await db.getTasks(user.id);
+      const tasks: Task[] = tasksData.map((t: any) => ({
+        id: t.task_id,
+        title: t.title,
+        category: t.category,
+        difficulty: t.difficulty,
+        xpValue: t.xp_value,
+        notes: t.notes || '',
+        completed: t.completed,
+        completedAt: t.completed_at,
+      }));
+      setGameState(prev => ({ ...prev, tasks }));
     }
   };
 
   const deleteTask = async (taskId: string) => {
     if (!user) return;
     try {
+      setGameState(prev => ({
+        ...prev,
+        tasks: prev.tasks.filter(t => t.id !== taskId),
+      }));
+
       await db.deleteTask(user.id, taskId);
       console.log('✅ Task deleted');
     } catch (error) {
       console.error('❌ Error deleting task:', error);
+      const tasksData = await db.getTasks(user.id);
+      const tasks: Task[] = tasksData.map((t: any) => ({
+        id: t.task_id,
+        title: t.title,
+        category: t.category,
+        difficulty: t.difficulty,
+        xpValue: t.xp_value,
+        notes: t.notes || '',
+        completed: t.completed,
+        completedAt: t.completed_at,
+      }));
+      setGameState(prev => ({ ...prev, tasks }));
     }
   };
 
   const addCustomReward = async (reward: Omit<Reward, 'id' | 'purchased'>) => {
     if (!user) return;
     try {
+      const rewardId = `reward-${Date.now()}`;
+      const newReward: Reward = {
+        ...reward,
+        id: rewardId,
+        purchased: false,
+      };
+
+      setGameState(prev => ({
+        ...prev,
+        rewards: [...prev.rewards, newReward],
+      }));
+
       await db.createReward(user.id, reward);
       console.log('✅ Reward created');
     } catch (error) {
       console.error('❌ Error creating reward:', error);
+      const rewardsData = await db.getRewards(user.id);
+      const rewards: Reward[] = rewardsData.map((r: any) => ({
+        id: r.reward_id,
+        title: r.title,
+        xpCost: r.xp_cost,
+        icon: r.icon,
+        description: r.description || '',
+        purchased: r.purchased,
+        purchasedAt: r.purchased_at,
+      }));
+      setGameState(prev => ({ ...prev, rewards }));
     }
   };
 
@@ -712,17 +762,32 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const deleteReward = async (rewardId: string) => {
     if (!user) return;
     try {
+      setGameState(prev => ({
+        ...prev,
+        rewards: prev.rewards.filter(r => r.id !== rewardId),
+      }));
+
       await db.deleteReward(user.id, rewardId);
       console.log('✅ Reward deleted');
     } catch (error) {
       console.error('❌ Error deleting reward:', error);
+      const rewardsData = await db.getRewards(user.id);
+      const rewards: Reward[] = rewardsData.map((r: any) => ({
+        id: r.reward_id,
+        title: r.title,
+        xpCost: r.xp_cost,
+        icon: r.icon,
+        description: r.description || '',
+        purchased: r.purchased,
+        purchasedAt: r.purchased_at,
+      }));
+      setGameState(prev => ({ ...prev, rewards }));
     }
   };
 
   const toggleDarkMode = async () => {
     if (!user) return;
     try {
-      // Optimistic update
       setGameState(prev => ({
         ...prev,
         settings: {
@@ -731,7 +796,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         },
       }));
 
-      // Save to database
       await db.updateProfile(user.id, {
         dark_mode: !gameState.settings.darkMode,
       });
@@ -739,7 +803,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       console.log('✅ Dark mode toggled');
     } catch (error) {
       console.error('❌ Error toggling dark mode:', error);
-      // Revert on error
       setGameState(prev => ({
         ...prev,
         settings: {
@@ -753,7 +816,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const toggleSound = async () => {
     if (!user) return;
     try {
-      // Optimistic update
       setGameState(prev => ({
         ...prev,
         settings: {
@@ -762,7 +824,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         },
       }));
 
-      // Save to database
       await db.updateProfile(user.id, {
         sound_enabled: !gameState.settings.soundEnabled,
       });
@@ -770,7 +831,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       console.log('✅ Sound toggled');
     } catch (error) {
       console.error('❌ Error toggling sound:', error);
-      // Revert on error
       setGameState(prev => ({
         ...prev,
         settings: {
@@ -793,7 +853,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const selectWeeklyTasks = (taskIds: string[]) => {
-    // This is now just for local state, not saved to DB
     setGameState(prev => ({
       ...prev,
       weeklyRotation: {
@@ -806,8 +865,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const resetProgress = async () => {
     if (!user) return;
     try {
-      // This would require deleting all user data and recreating
-      // For now, just reload the page
       window.location.reload();
     } catch (error) {
       console.error('❌ Error resetting progress:', error);
@@ -816,10 +873,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-fantasy-cream dark:bg-fantasy-deep flex items-center justify-center">
+      <div className="min-h-screen bg-night-stars flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl animate-bounce mb-4">⚔️</div>
-          <p className="font-heading text-xl text-fantasy-midnight dark:text-fantasy-cream">
+          <div className="text-6xl animate-bounce mb-4">🌙</div>
+          <p className="font-heading text-xl text-violet-200">
             Loading your quest...
           </p>
         </div>

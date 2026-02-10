@@ -1,77 +1,98 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        // Cozy Fantasy Theme
-        primary: {
-          50: '#fef5ff',
-          100: '#fce8ff',
-          200: '#f9d0fe',
-          300: '#f5a9fc',
-          400: '#ee73f8',
-          500: '#e03eeb',
-          600: '#c821ce',
-          700: '#a618a8',
-          800: '#891688',
-          900: '#70176d',
+        // Night Court Theme
+        'night': {
+          50: '#f0f0ff',
+          100: '#e5e5ff',
+          200: '#d1d1ff',
+          300: '#b3b3ff',
+          400: '#8080ff',
+          500: '#6366f1', // Main Night Court purple
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
+          950: '#1e1b4b',
         },
-        fantasy: {
-          cream: '#fff8f0',
-          peach: '#ffd6ba',
-          lavender: '#c8b6e2',
-          sage: '#a8c8a0',
-          gold: '#f4d56f',
-          rose: '#f4a5b9',
-          midnight: '#2d2438',
-          deep: '#1a1625',
-        }
+        'starlight': {
+          50: '#fafafa',
+          100: '#f0f0ff',
+          200: '#e0e0ff',
+          300: '#c7c7ff',
+          400: '#a5a5ff',
+          500: '#8b8bff',
+          600: '#7070ff',
+          700: '#5555ff',
+          800: '#4444dd',
+          900: '#3333bb',
+        },
+        'velaris': {
+          50: '#f5f3ff',
+          100: '#ede9fe',
+          200: '#ddd6fe',
+          300: '#c4b5fd',
+          400: '#a78bfa',
+          500: '#8b5cf6',
+          600: '#7c3aed',
+          700: '#6d28d9',
+          800: '#5b21b6',
+          900: '#4c1d95',
+        },
+        'rhysand': {
+          50: '#faf5ff',
+          100: '#f3e8ff',
+          200: '#e9d5ff',
+          300: '#d8b4fe',
+          400: '#c084fc',
+          500: '#a855f7',
+          600: '#9333ea',
+          700: '#7e22ce',
+          800: '#6b21a8',
+          900: '#581c87',
+        },
+      },
+      backgroundImage: {
+        'starfield': "radial-gradient(2px 2px at 20px 30px, white, transparent), radial-gradient(2px 2px at 60px 70px, white, transparent), radial-gradient(1px 1px at 50px 50px, white, transparent), radial-gradient(1px 1px at 130px 80px, white, transparent), radial-gradient(2px 2px at 90px 10px, white, transparent)",
+        'night-sky': "linear-gradient(to bottom, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)",
       },
       fontFamily: {
-        heading: ['"Fredoka"', 'sans-serif'],
-        body: ['"Nunito"', 'sans-serif'],
-        accent: ['"Playfair Display"', 'serif'],
+        heading: ['var(--font-cinzel)', 'serif'],
+        body: ['var(--font-quicksand)', 'sans-serif'],
       },
       animation: {
-        'float': 'float 3s ease-in-out infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'sparkle': 'sparkle 2s ease-in-out infinite',
         'shimmer': 'shimmer 2s linear infinite',
-        'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'bounce-slow': 'bounce 3s infinite',
-        'wiggle': 'wiggle 1s ease-in-out infinite',
-        'sparkle': 'sparkle 1.5s ease-in-out infinite',
+        'twinkle': 'twinkle 3s ease-in-out infinite',
       },
       keyframes: {
         float: {
           '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-10px)' },
-        },
-        shimmer: {
-          '0%': { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
-        'pulse-glow': {
-          '0%, 100%': { opacity: 1, boxShadow: '0 0 20px rgba(224, 62, 235, 0.5)' },
-          '50%': { opacity: 0.8, boxShadow: '0 0 40px rgba(224, 62, 235, 0.8)' },
-        },
-        wiggle: {
-          '0%, 100%': { transform: 'rotate(-3deg)' },
-          '50%': { transform: 'rotate(3deg)' },
+          '50%': { transform: 'translateY(-20px)' },
         },
         sparkle: {
-          '0%, 100%': { opacity: 1, transform: 'scale(1)' },
-          '50%': { opacity: 0.5, transform: 'scale(0.8)' },
-        }
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.5', transform: 'scale(1.1)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' },
+        },
+        twinkle: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.3' },
+        },
       },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'fantasy-pattern': "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8b6e2' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
-      }
     },
   },
   plugins: [],
-}
+};
