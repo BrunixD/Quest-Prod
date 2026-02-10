@@ -91,14 +91,14 @@ export const ScheduleTimeline: React.FC = () => {
               transition={{ delay: index * 0.05 }}
               className={`bg-gradient-to-r ${getSlotColor(slot.type, isCompleted, isSkipped)} border-2 rounded-xl p-4 backdrop-blur-sm transition-all ${!isDisabled && 'hover:shadow-lg hover:glow-purple'}`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="text-violet-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className="text-violet-200 flex-shrink-0">
                     {getSlotIcon(slot.type)}
                   </div>
                   
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-heading text-lg font-semibold text-violet-100">
                         {slot.label}
                       </h3>
@@ -124,7 +124,7 @@ export const ScheduleTimeline: React.FC = () => {
                         </>
                       )}
                     </div>
-                    <p className="font-body text-sm text-violet-300/70">
+                    <p className="font-body text-sm text-violet-300/70 mt-1">
                       {slot.startTime} - {slot.endTime}
                     </p>
                     {assignedTask && (
@@ -136,7 +136,7 @@ export const ScheduleTimeline: React.FC = () => {
                 </div>
 
                 {isTaskSlot && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:flex-shrink-0">
                     {assignedTask ? (
                       <>
                         {!isDisabled ? (
@@ -145,19 +145,19 @@ export const ScheduleTimeline: React.FC = () => {
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => completeTask(assignedTask.id, slot.id)}
-                              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-heading font-semibold flex items-center gap-2 transition-colors"
+                              className="flex-1 sm:flex-initial px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-heading font-semibold flex items-center justify-center gap-2 transition-colors"
                             >
                               <CheckCircle2 className="w-4 h-4" />
-                              Complete
+                              <span className="whitespace-nowrap">Complete</span>
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => skipTask(assignedTask.id, slot.id)}
-                              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-heading font-semibold flex items-center gap-2 transition-colors"
+                              className="flex-1 sm:flex-initial px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-heading font-semibold flex items-center justify-center gap-2 transition-colors"
                             >
                               <XCircle className="w-4 h-4" />
-                              Skip
+                              <span className="whitespace-nowrap">Skip</span>
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.05 }}
@@ -170,7 +170,7 @@ export const ScheduleTimeline: React.FC = () => {
                             </motion.button>
                           </>
                         ) : (
-                          <div className="px-4 py-2 glass-card rounded-lg font-heading font-semibold text-violet-300/50">
+                          <div className="w-full sm:w-auto px-4 py-2 glass-card rounded-lg font-heading font-semibold text-violet-300/50 text-center">
                             {isCompleted ? 'Done' : 'Skipped'}
                           </div>
                         )}
@@ -180,7 +180,7 @@ export const ScheduleTimeline: React.FC = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setSelectedSlot(slot.id)}
-                        className="px-4 py-2 bg-velaris-500 hover:bg-velaris-600 text-white rounded-lg font-heading font-semibold transition-colors glow-purple"
+                        className="w-full sm:w-auto px-4 py-2 bg-velaris-500 hover:bg-velaris-600 text-white rounded-lg font-heading font-semibold transition-colors glow-purple"
                       >
                         Assign Task
                       </motion.button>
@@ -221,7 +221,7 @@ export const ScheduleTimeline: React.FC = () => {
                                   <span>{categoryIcon}</span>
                                   {category}
                                 </h5>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   {categoryTasks.map(task => (
                                     <motion.button
                                       key={task.id}
@@ -333,9 +333,9 @@ export const ScheduleTimeline: React.FC = () => {
                           <motion.div
                             key={task.id}
                             whileHover={{ scale: 1.02 }}
-                            className="p-3 glass-card rounded-lg border-2 border-velaris-400/20 flex items-center justify-between"
+                            className="p-3 glass-card rounded-lg border-2 border-velaris-400/20 flex items-center justify-between gap-3"
                           >
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <span className="font-body text-sm font-semibold text-violet-100">
                                 {task.title}
                               </span>
@@ -356,7 +356,7 @@ export const ScheduleTimeline: React.FC = () => {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handleCompleteExtraTask(task.id)}
-                              className="ml-3 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-heading font-semibold text-sm transition-colors"
+                              className="flex-shrink-0 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-heading font-semibold text-sm transition-colors"
                             >
                               Complete
                             </motion.button>
@@ -388,7 +388,7 @@ export const ScheduleTimeline: React.FC = () => {
                             className="p-3 bg-green-500/10 rounded-lg border-2 border-green-400/30 flex items-center gap-3"
                           >
                             <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <span className="font-body text-sm font-semibold text-violet-100">
                                 {task.title}
                               </span>

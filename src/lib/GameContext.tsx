@@ -7,6 +7,7 @@ import { db } from '@/lib/database';
 import { DAILY_SCHEDULE, INITIAL_TASKS, DEFAULT_REWARDS, XP_RULES } from '@/data/constants';
 import { format, differenceInDays } from 'date-fns';
 import { getCurrentLevel } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 
 interface GameContextType {
   gameState: GameState;
@@ -130,42 +131,89 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           purchasedAt: r.purchased_at,
         }));
 
-        console.log('📅 Loading slot assignments...');
-        const today = new Date();
-        const slotAssignments = await db.getSlotAssignments(user.id, today);
-        const todayProgress = await db.getDailyProgress(user.id, today);
-        console.log('Slot assignments:', slotAssignments);
-        console.log('Today progress:', todayProgress);
+        console.log('📅 Loading ALL slot assignments and daily progress...');
+        
+        // Load ALL slot assignments (not just today)
+        const { data: allSlotAssignments, error: slotsError } = await supabase
+          .from('slot_assignments')
+          .select('*')
+          .eq('user_id', user.id);
 
+        if (slotsError) {
+          console.error('Error loading slot assignments:', slotsError);
+        }
+
+        // Load ALL daily progress
+        const { data: allDailyProgress, error: progressError } = await supabase
+          .from('daily_progress')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (progressError) {
+          console.error('Error loading daily progress:', progressError);
+        }
+
+        console.log('All slot assignments:', allSlotAssignments);
+        console.log('All daily progress:', allDailyProgress);
+
+        // Build weeklyProgress from ALL the data
         const weeklyProgress: Record<string, DailyProgress> = {};
-        const dateStr = format(today, 'yyyy-MM-dd');
-        
-        const slotsCompleted = slotAssignments
-          .filter(s => s.completed)
-          .map(s => s.slot_id);
-        
-        const slotsSkipped = slotAssignments
-          .filter(s => s.skipped)
-          .map(s => s.slot_id);
 
-        const slotAssignmentsMap: Record<string, string> = {};
-        slotAssignments.forEach(s => {
-          slotAssignmentsMap[s.slot_id] = s.task_id;
+        // Group slot assignments by date
+        const slotsByDate: Record<string, any[]> = {};
+        (allSlotAssignments || []).forEach(slot => {
+          if (!slotsByDate[slot.date]) {
+            slotsByDate[slot.date] = [];
+          }
+          slotsByDate[slot.date].push(slot);
         });
 
-        weeklyProgress[dateStr] = {
-          date: dateStr,
-          completedTasks: todayProgress?.completed_tasks || 0,
-          totalTasks: 5,
-          xpEarned: todayProgress?.xp_earned || 0,
-          tasksCompleted: [],
-          tasksSkipped: [],
-          tasksPenalty: [],
-          slotAssignments: slotAssignmentsMap,
-          slotsCompleted,
-          slotsSkipped,
-          extraTasksCompleted: todayProgress?.extra_tasks_completed || [],
-        };
+        // Group daily progress by date
+        const progressByDate: Record<string, any> = {};
+        (allDailyProgress || []).forEach(progress => {
+          progressByDate[progress.date] = progress;
+        });
+
+        // Combine all dates
+        const allDates = new Set([
+          ...Object.keys(slotsByDate),
+          ...Object.keys(progressByDate),
+        ]);
+
+        // Build progress for each date
+        allDates.forEach(dateStr => {
+          const dateSlots = slotsByDate[dateStr] || [];
+          const dateProgress = progressByDate[dateStr];
+
+          const slotsCompleted = dateSlots
+            .filter(s => s.completed)
+            .map(s => s.slot_id);
+          
+          const slotsSkipped = dateSlots
+            .filter(s => s.skipped)
+            .map(s => s.slot_id);
+
+          const slotAssignmentsMap: Record<string, string> = {};
+          dateSlots.forEach(s => {
+            slotAssignmentsMap[s.slot_id] = s.task_id;
+          });
+
+          weeklyProgress[dateStr] = {
+            date: dateStr,
+            completedTasks: dateProgress?.completed_tasks || 0,
+            totalTasks: 5,
+            xpEarned: dateProgress?.xp_earned || 0,
+            tasksCompleted: [],
+            tasksSkipped: [],
+            tasksPenalty: [],
+            slotAssignments: slotAssignmentsMap,
+            slotsCompleted,
+            slotsSkipped,
+            extraTasksCompleted: dateProgress?.extra_tasks_completed || [],
+          };
+        });
+
+        console.log('Built weekly progress for dates:', Object.keys(weeklyProgress));
 
         console.log('🎯 Setting game state...');
         setGameState({
@@ -512,7 +560,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       }));
 
       await db.completeSlot(user.id, today, slotId);
-      await db.updateDailyProgress(user.id, today, newCompletedCount, todayProgress.xpEarned + xpGained + bonusXP);
+      await db.updateDailyProgress(user.id, today, newCompletedCount, todayProgress.xpEarned + xpGained + bonusXP, todayProgress.extraTasksCompleted);
       await db.updateProfile(user.id, {
         total_xp: newTotalXP,
         current_level: newLevel,
@@ -556,7 +604,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         user.id, 
         today, 
         todayProgress.completedTasks, 
-        todayProgress.xpEarned + XP_RULES.SKIP_TASK_PENALTY
+        todayProgress.xpEarned + XP_RULES.SKIP_TASK_PENALTY,
+        todayProgress.extraTasksCompleted
       );
       await db.updateProfile(user.id, {
         total_xp: newTotalXP,
@@ -581,7 +630,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         user.id,
         today,
         todayProgress.completedTasks,
-        todayProgress.xpEarned + XP_RULES.QUIT_MID_TASK_PENALTY
+        todayProgress.xpEarned + XP_RULES.QUIT_MID_TASK_PENALTY,
+        todayProgress.extraTasksCompleted
       );
 
       await db.updateProfile(user.id, {
@@ -626,13 +676,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         },
       }));
 
-      // Save to database WITH extra tasks array
       await db.updateDailyProgress(
         user.id,
         today,
         todayProgress.completedTasks,
         todayProgress.xpEarned + xpGained,
-        newExtraTasks // ADD THIS PARAMETER
+        newExtraTasks
       );
 
       await db.updateProfile(user.id, {

@@ -28,13 +28,13 @@ export const WeeklyCalendar: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="font-heading text-2xl font-bold bg-gradient-to-r from-violet-300 to-purple-300 bg-clip-text text-transparent flex items-center gap-2">
           <Calendar className="w-6 h-6 text-velaris-400" />
           Weekly View
         </h2>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center gap-3">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -44,7 +44,7 @@ export const WeeklyCalendar: React.FC = () => {
             <ChevronLeft className="w-5 h-5 text-violet-200" />
           </motion.button>
 
-          <span className="font-heading text-lg font-semibold text-violet-200 min-w-[200px] text-center">
+          <span className="font-heading text-base sm:text-lg font-semibold text-violet-200 min-w-[180px] sm:min-w-[200px] text-center">
             {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d, yyyy')}
           </span>
 
@@ -59,8 +59,8 @@ export const WeeklyCalendar: React.FC = () => {
         </div>
       </div>
 
-      {/* Week Days */}
-      <div className="grid grid-cols-7 gap-3">
+      {/* Week Days - Responsive Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {weekDays.map((day, index) => {
           const progress = getDayProgress(day);
           const completionRate = getCompletionRate(day);
@@ -159,7 +159,7 @@ export const WeeklyCalendar: React.FC = () => {
 
               {/* Icons */}
               {hasTasks && (
-                <div className="flex gap-1 justify-center mt-3">
+                <div className="flex gap-1 justify-center mt-3 flex-wrap">
                   {slotsCompleted > 0 && (
                     <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
                       <CheckCircle className="w-3 h-3 text-green-400" />
@@ -181,7 +181,7 @@ export const WeeklyCalendar: React.FC = () => {
 
       {/* Legend */}
       <div className="glass-card-dark rounded-xl p-4 border-2 border-velaris-400/20">
-        <div className="flex items-center justify-center gap-6 flex-wrap text-sm">
+        <div className="flex items-center justify-center gap-4 sm:gap-6 flex-wrap text-xs sm:text-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-400"></div>
             <span className="text-violet-300/70">Completed</span>
