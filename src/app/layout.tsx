@@ -3,6 +3,7 @@ import { Quicksand, Cinzel } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
 import { GameProvider } from "@/lib/GameContext";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const quicksand = Quicksand({
   subsets: ["latin"],
@@ -35,6 +36,7 @@ export default function RootLayout({
           </GameProvider>
         </AuthProvider>
         <div id="modal-root"></div>
+        <SpeedInsights />
       </body>
     </html>
   );
