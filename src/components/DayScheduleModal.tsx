@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/lib/GameContext';
 import { Portal } from './Portal';
 import { X, Calendar, CheckCircle, XCircle, Clock, Plus, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isBefore, startOfDay } from 'date-fns';
 
 interface DayScheduleModalProps {
   date: Date;
@@ -20,6 +20,7 @@ export const DayScheduleModal: React.FC<DayScheduleModalProps> = ({ date, onClos
 
   const availableTasks = gameState.tasks.filter(t => !t.completed);
   const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
+  const isPastOrToday = isBefore(startOfDay(date), startOfDay(new Date())) || isToday;
 
   const handleAssignTask = (slotId: string, taskId: string) => {
     assignTaskToSlot(taskId, slotId, date);
@@ -28,6 +29,14 @@ export const DayScheduleModal: React.FC<DayScheduleModalProps> = ({ date, onClos
 
   const handleRemoveAssignment = (slotId: string) => {
     removeSlotAssignment(date, slotId);
+  };
+
+  const handleCompleteTask = async (taskId: string, slotId: string) => {
+    await completeTask(taskId, slotId, date); // Pass date parameter
+  };
+
+  const handleSkipTask = async (taskId: string, slotId: string) => {
+    await skipTask(taskId, slotId, date); // Pass date parameter
   };
 
   const isSlotCompleted = (slotId: string) => {
@@ -65,6 +74,11 @@ export const DayScheduleModal: React.FC<DayScheduleModalProps> = ({ date, onClos
                 {progress && (
                   <p className="font-body text-sm text-violet-300/70">
                     {progress.completedTasks}/{progress.totalTasks} tasks completed • {progress.xpEarned >= 0 ? '+' : ''}{progress.xpEarned} XP
+                  </p>
+                )}
+                {!isToday && isPastOrToday && (
+                  <p className="font-body text-xs text-yellow-400 mt-1">
+                    ⏰ Past day - you can still log completed/skipped tasks
                   </p>
                 )}
               </div>
@@ -130,12 +144,12 @@ export const DayScheduleModal: React.FC<DayScheduleModalProps> = ({ date, onClos
                       <div className="flex flex-col gap-2 flex-shrink-0">
                         {task ? (
                           <>
-                            {isToday && !isDisabled && (
+                            {isPastOrToday && !isDisabled && (
                               <div className="flex gap-2">
                                 <motion.button
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  onClick={() => completeTask(task.id, slot.id)}
+                                  onClick={() => handleCompleteTask(task.id, slot.id)}
                                   className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-heading font-semibold text-sm flex items-center gap-1 transition-colors whitespace-nowrap"
                                 >
                                   <CheckCircle className="w-3 h-3" />
@@ -144,7 +158,7 @@ export const DayScheduleModal: React.FC<DayScheduleModalProps> = ({ date, onClos
                                 <motion.button
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  onClick={() => skipTask(task.id, slot.id)}
+                                  onClick={() => handleSkipTask(task.id, slot.id)}
                                   className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-heading font-semibold text-sm flex items-center gap-1 transition-colors whitespace-nowrap"
                                 >
                                   <XCircle className="w-3 h-3" />

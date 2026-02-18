@@ -12,8 +12,8 @@ import { supabase } from '@/lib/supabase';
 interface GameContextType {
   gameState: GameState;
   loading: boolean;
-  completeTask: (taskId: string, slotId: string) => Promise<void>;
-  skipTask: (taskId: string, slotId: string) => Promise<void>;
+  completeTask: (taskId: string, slotId: string, date?: Date) => Promise<void>;
+  skipTask: (taskId: string, slotId: string, date?: Date) => Promise<void>;
   quitTask: (taskId: string) => Promise<void>;
   addCustomTask: (task: Omit<Task, 'id' | 'completed'>) => Promise<void>;
   addCustomReward: (reward: Omit<Reward, 'id' | 'purchased'>) => Promise<void>;
@@ -517,18 +517,31 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const completeTask = async (taskId: string, slotId: string) => {
+   const completeTask = async (taskId: string, slotId: string, date?: Date) => {
     if (!user) return;
     try {
       const task = gameState.tasks.find(t => t.id === taskId);
       if (!task) return;
 
-      const today = new Date();
-      const dateStr = format(today, 'yyyy-MM-dd');
-      const todayProgress = getTodayProgress();
+      const targetDate = date || new Date();
+      const dateStr = format(targetDate, 'yyyy-MM-dd');
+      const targetProgress = gameState.userProgress.weeklyProgress[dateStr] || {
+        date: dateStr,
+        completedTasks: 0,
+        totalTasks: 5,
+        xpEarned: 0,
+        tasksCompleted: [],
+        tasksSkipped: [],
+        tasksPenalty: [],
+        slotAssignments: {},
+        slotsCompleted: [],
+        slotsSkipped: [],
+        extraTasksCompleted: [],
+      };
+
       const xpGained = task.xpValue;
       
-      const newCompletedCount = todayProgress.completedTasks + 1;
+      const newCompletedCount = targetProgress.completedTasks + 1;
       let bonusXP = 0;
       if (newCompletedCount === 5) {
         bonusXP = XP_RULES.ALL_TASKS_BONUS;
@@ -536,7 +549,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
       const newTotalXP = gameState.userProgress.totalXP + xpGained + bonusXP;
       const newLevel = getCurrentLevel(newTotalXP);
-      const newStreak = todayProgress.completedTasks === 0 
+      
+      // Only update streak if it's today
+      const isToday = dateStr === format(new Date(), 'yyyy-MM-dd');
+      const newStreak = isToday && targetProgress.completedTasks === 0 
         ? gameState.userProgress.streak + 1 
         : gameState.userProgress.streak;
 
@@ -550,17 +566,17 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           weeklyProgress: {
             ...prev.userProgress.weeklyProgress,
             [dateStr]: {
-              ...todayProgress,
+              ...targetProgress,
               completedTasks: newCompletedCount,
-              xpEarned: todayProgress.xpEarned + xpGained + bonusXP,
-              slotsCompleted: [...(todayProgress.slotsCompleted || []), slotId],
+              xpEarned: targetProgress.xpEarned + xpGained + bonusXP,
+              slotsCompleted: [...(targetProgress.slotsCompleted || []), slotId],
             },
           },
         },
       }));
 
-      await db.completeSlot(user.id, today, slotId);
-      await db.updateDailyProgress(user.id, today, newCompletedCount, todayProgress.xpEarned + xpGained + bonusXP, todayProgress.extraTasksCompleted);
+      await db.completeSlot(user.id, targetDate, slotId);
+      await db.updateDailyProgress(user.id, targetDate, newCompletedCount, targetProgress.xpEarned + xpGained + bonusXP, targetProgress.extraTasksCompleted);
       await db.updateProfile(user.id, {
         total_xp: newTotalXP,
         current_level: newLevel,
@@ -574,12 +590,24 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const skipTask = async (taskId: string, slotId: string) => {
+  const skipTask = async (taskId: string, slotId: string, date?: Date) => {
     if (!user) return;
     try {
-      const today = new Date();
-      const dateStr = format(today, 'yyyy-MM-dd');
-      const todayProgress = getTodayProgress();
+      const targetDate = date || new Date();
+      const dateStr = format(targetDate, 'yyyy-MM-dd');
+      const targetProgress = gameState.userProgress.weeklyProgress[dateStr] || {
+        date: dateStr,
+        completedTasks: 0,
+        totalTasks: 5,
+        xpEarned: 0,
+        tasksCompleted: [],
+        tasksSkipped: [],
+        tasksPenalty: [],
+        slotAssignments: {},
+        slotsCompleted: [],
+        slotsSkipped: [],
+        extraTasksCompleted: [],
+      };
 
       const newTotalXP = Math.max(0, gameState.userProgress.totalXP + XP_RULES.SKIP_TASK_PENALTY);
 
@@ -591,21 +619,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           weeklyProgress: {
             ...prev.userProgress.weeklyProgress,
             [dateStr]: {
-              ...todayProgress,
-              xpEarned: todayProgress.xpEarned + XP_RULES.SKIP_TASK_PENALTY,
-              slotsSkipped: [...(todayProgress.slotsSkipped || []), slotId],
+              ...targetProgress,
+              xpEarned: targetProgress.xpEarned + XP_RULES.SKIP_TASK_PENALTY,
+              slotsSkipped: [...(targetProgress.slotsSkipped || []), slotId],
             },
           },
         },
       }));
 
-      await db.skipSlot(user.id, today, slotId);
+      await db.skipSlot(user.id, targetDate, slotId);
       await db.updateDailyProgress(
         user.id, 
-        today, 
-        todayProgress.completedTasks, 
-        todayProgress.xpEarned + XP_RULES.SKIP_TASK_PENALTY,
-        todayProgress.extraTasksCompleted
+        targetDate, 
+        targetProgress.completedTasks, 
+        targetProgress.xpEarned + XP_RULES.SKIP_TASK_PENALTY,
+        targetProgress.extraTasksCompleted
       );
       await db.updateProfile(user.id, {
         total_xp: newTotalXP,
